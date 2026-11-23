@@ -117,7 +117,7 @@ body.viewer #bSave,body.viewer #dPw,body.viewer #pwBox,body.viewer #dDel,body.vi
    <label class="sub" id="lbA" style="display:none">Từ <select id="selA"></select></label>
    <label class="sub"><span id="lbM">Tháng</span> <select id="selM"></select></label>
    <label class="sub">Kênh <select id="selC"><option value="all">Tổng TMĐT</option><option value="sp">Shopee</option><option value="tt">TikTok</option><option value="ns">Ngoại sàn (CSKH)</option></select></label>
-   <button class="btn" id="bXls" title="Xuất toàn bộ bảng ra Excel">⤓ Excel</button>
+   <button class="btn" id="bXls" title="Xuất sổ Excel (.xlsx) có công thức, định dạng và sheet kiểm tra">⤓ Excel</button>
    <button class="btn" id="bPrint" title="In hoặc lưu PDF">⎙ In / PDF</button>
    <button class="btn" id="bSave" title="Lưu một file HTML mới đã mã hóa, gồm số liệu đang có">🔒 Lưu file bảo mật</button>
    <button class="btn" id="bInstall" type="button" hidden title="Cài báo cáo thành ứng dụng, mở được khi mất mạng">📲 Cài ứng dụng</button>
@@ -441,7 +441,7 @@ function initUI(){if(EMBED)document.body.classList.add("embed");
  $("#bXls").onclick=exportAll;$("#bSave").onclick=()=>exportSecure();$("#bLock").onclick=lockNow;
  $("#bTheme").onclick=()=>{const r=document.documentElement,cur=r.getAttribute("data-theme"),dark=cur?cur==="dark":matchMedia("(prefers-color-scheme: dark)").matches;r.setAttribute("data-theme",dark?"light":"dark");};
  document.addEventListener("click",e=>{const p=e.target.closest("[data-png]");if(p){savePNG(p);return;}
-  const x=e.target.closest("[data-xls]");if(x){const t=x.closest(".tbox").querySelector("table");exportXls([t],(t.dataset.title||"bang").replace(/[^\wÀ-ỹ]+/g,"_").slice(0,60)+".xls");return;}
+  const x=e.target.closest("[data-xls]");if(x){const t=x.closest(".tbox").querySelector("table");exportTable(t);return;}
   const sg=e.target.closest("[data-set]");if(sg){const[k,v]=sg.dataset.set.split("=");S[k]=isNaN(+v)?v:+v;renderAll(k!=="ds");if(k==="ds")pData();}});
  try{const t=localStorage.getItem("tmdt_tab");if(t&&VIS().includes(t))S.tab=t;}catch(_){}
 }
@@ -829,7 +829,7 @@ function pPlan(){const M=MF;
  const lag=P.cashLag||0,net=m=>R.nmv[m]-R.fee[m],prv=(a,m)=>m>0?a[m-1]:a[0];
  const cin=MO12.map((_,m)=>net(m)*(1-lag)+(m>0?net(m-1):net(0))*lag),wage=MO12.map((_,m)=>prv(R.lbm,m)+prv(R.lkho,m)+prv(R.tv,m)+prv(R.ins,m)+R.kpi[m]+(m===0?y(R.l13):0));
  const cit=MO12.map((_,m)=>[3,6,9].includes(m)?R.cit[m-3]+R.cit[m-2]+R.cit[m-1]:0),taxp=MO12.map((_,m)=>prv(R.tax,m)+prv(R.fct,m)),rentc=MO12.map(()=>(P.kho.rent+P.kho.svc)*(1+P.kho.vat));
- const netc=MO12.map((_,m)=>cin[m]-R.gv[m]-R.ads[m]-R.bhk[m]-wage[m]-rentc[m]-R.office[m]-taxp[m]-cit[m]+R.tnk[m]);let cum=0;const cumc=netc.map(x=>cum+=x);
+ const netc=MO12.map((_,m)=>cin[m]-R.gv[m]-R.ads[m]-R.bhk[m]-wage[m]-rentc[m]-R.office[m]-taxp[m]-cit[m]+R.tnk[m]-(prv(R.fctVat,m)-(m>1?R.fctVat[m-2]:0)));let cum=0;const cumc=netc.map(x=>cum+=x);
  h+=`<div class="card"><h2>6. Dòng tiền kế hoạch ${Y}</h2><div class="note">Giả định: ${fpct(lag,0)} tiền sàn của tháng về vào tháng sau; lương, bảo hiểm trả tháng sau; lương tháng 13 chi tháng 1 (Tết); thuế GTGT nộp tháng sau; thuế TNDN tạm nộp theo quý; thuê kho chi gồm VAT. Chưa tính tồn kho, công nợ nhà cung cấp, thưởng hiệu quả (chi năm sau).</div>`+
   seriesTable({title:`Dòng tiền KH ${Y}`,labels:MO12,ytd:true,ytdLabel:"Cả năm",kind:"vnd",rows:[{l:"Tiền sàn trả về",f:m=>cin[m],cls:"sec"},{l:"Chi tiền hàng",f:m=>-R.gv[m]},{l:"Chi ADS",f:m=>-R.ads[m]},{l:"Chi booking, marketing, quà",f:m=>-R.bhk[m]},{l:"Chi lương, BH, thưởng",f:m=>-wage[m]},{l:"Chi thuê kho (gồm VAT)",f:m=>-rentc[m]},{l:"Chi văn phòng, phúc lợi",f:m=>-R.office[m]},{l:"Nộp thuế GTGT công ty + TNDN nhà thầu",f:m=>-taxp[m]},{l:"GTGT nộp thay nhà thầu (chi tháng sau, khấu trừ lại kỳ kê khai kế tiếp)",f:m=>-(prv(R.fctVat,m)-(m>1?R.fctVat[m-2]:0))},{l:"Tạm nộp thuế TNDN",f:m=>-cit[m]},{l:"Thu nhập khác",f:m=>R.tnk[m]},{l:"DÒNG TIỀN THUẦN",f:m=>netc[m],cls:"tot"},{l:"Lũy kế dòng tiền",f:m=>cumc[m],cls:"sec",noYtd:1}]})+`</div>`;
  /* Đòn bẩy */
@@ -1130,22 +1130,827 @@ function applyImport(res){
  D.source=res.file;touch();S.m=maxM-1;renderAll();}
 
 /* ===================== XUẤT FILE ===================== */
-function exportAll(){const keep={...S},seen=new Set(),tabs=[];
- const grab=()=>document.querySelectorAll("#main table[data-title]").forEach(t=>{const k=t.dataset.title;if(!seen.has(k)&&!/^Dữ liệu/.test(k)){seen.add(k);tabs.push(t.cloneNode(true));}});
- const run=o=>{Object.assign(S,o);renderAll();grab();};
- run({plView:"amt",cashView:"amt",feeCh:"sp",feeView:"pct",chView:"sp"});run({feeCh:"tt",feeView:"pct",chView:"tt"});run({feeCh:"sp",feeView:"amt",chView:"ns"});run({feeCh:"tt",feeView:"amt",chView:"all"});run({feeCh:"cmp"});
- Object.assign(S,keep);renderAll();exportXls(tabs,"BaoCao_TMDT_"+D.year+"_KH"+D.plan.year+"_"+today()+".xls");}
-function exportXls(tables,fname){
- const xe=s=>String(s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
- let x=`<?xml version="1.0" encoding="UTF-8"?>\n<?mso-application progid="Excel.Sheet"?>\n<Workbook xmlns="urn:schemas-microsoft-com:office:spreadsheet" xmlns:ss="urn:schemas-microsoft-com:office:spreadsheet"><Styles><Style ss:ID="Default"><Font ss:FontName="Arial" ss:Size="10"/></Style><Style ss:ID="h"><Font ss:FontName="Arial" ss:Bold="1" ss:Color="#FFFFFF"/><Interior ss:Color="#0F172A" ss:Pattern="Solid"/></Style><Style ss:ID="t"><Font ss:FontName="Arial" ss:Bold="1" ss:Size="12"/></Style><Style ss:ID="n"><NumberFormat ss:Format="#,##0"/></Style><Style ss:ID="d"><NumberFormat ss:Format="#,##0.0"/></Style><Style ss:ID="p"><NumberFormat ss:Format="0.00%"/></Style><Style ss:ID="x"><NumberFormat ss:Format="0.00&quot;x&quot;"/></Style></Styles>`;
- const used={};tables.forEach((tb,ti)=>{let nm=(tb.dataset.title||"Bang "+(ti+1)).replace(/[\[\]\:\*\?\/\\]/g," ").slice(0,28).trim(),k=nm,j=2;while(used[k.toLowerCase()])k=nm.slice(0,25)+" "+(j++);used[k.toLowerCase()]=1;
-  x+=`<Worksheet ss:Name="${xe(k)}"><Table><Column ss:Width="280"/><Row><Cell ss:StyleID="t"><Data ss:Type="String">${xe(tb.dataset.title||"")} (đơn vị: đồng)</Data></Cell></Row>`;
-  tb.querySelectorAll("tr").forEach(tr=>{x+="<Row>";tr.querySelectorAll("th,td").forEach(td=>{const span=+(td.getAttribute("colspan")||1),mg=span>1?` ss:MergeAcross="${span-1}"`:"";
-   if(td.tagName==="TH"){x+=`<Cell ss:StyleID="h"${mg}><Data ss:Type="String">${xe(td.textContent.replace(/\s+/g," ").trim())}</Data></Cell>`;return;}
-   const v=td.dataset.v,inp=td.querySelector("input");
-   if(v!==undefined&&v!==""&&isFinite(+v)){const t=td.dataset.t,st=t==="rate"?"p":t==="x"?"x":t==="num"?"d":"n";x+=`<Cell ss:StyleID="${st}"${mg}><Data ss:Type="Number">${+v}</Data></Cell>`;}
-   else if(inp)x+=`<Cell${mg}><Data ss:Type="String">${xe(inp.value)}</Data></Cell>`;else x+=`<Cell${mg}><Data ss:Type="String">${xe(td.textContent.replace(/\s+/g," ").trim())}</Data></Cell>`;});x+="</Row>";});x+=`</Table></Worksheet>`;});
- dl(new Blob(["﻿"+x+"</Workbook>"],{type:"application/vnd.ms-excel"}),fname);}
+/* ===================== XUẤT EXCEL .XLSX – lõi: kiểu ô, sheet, công thức (tính sẵn kết quả), biểu đồ, nén zip ===================== */
+const XL=(()=>{
+const CN=c=>{let s="";while(c>0){const m=(c-1)%26;s=String.fromCharCode(65+m)+s;c=(c-1-m)/26;}return s;};
+const CI=s=>{let c=0;for(let i=0;i<s.length;i++)c=c*26+s.charCodeAt(i)-64;return c;};
+const AD=(r,c)=>CN(c)+r,AB=(r,c)=>"$"+CN(c)+"$"+r;
+const qn=n=>"'"+String(n).replace(/'/g,"''")+"'";
+const xe=s=>String(s==null?"":s).replace(/[\u0000-\u0008\u000B\u000C\u000E-\u001F￾￿]/g,"").replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+const NS_MAIN='xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"';
+const HEAD='<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n';
+/* ---------- kiểu ô (font, nền, viền, định dạng số) ---------- */
+function Styles(){
+ const fonts=['<font><sz val="10"/><name val="Arial"/><family val="2"/></font>'],fills=['<fill><patternFill patternType="none"/></fill>','<fill><patternFill patternType="gray125"/></fill>'],
+  borders=['<border><left/><right/><top/><bottom/><diagonal/></border>'],nfs=[],xfs=['<xf numFmtId="0" fontId="0" fillId="0" borderId="0" xfId="0"/>'],dxfs=[],K={};
+ const idx=(arr,ns,x)=>{const k=ns+x;if(K[k]==null){K[k]=arr.length;arr.push(x);}return K[k];};
+ const sd=(n,s,c)=>s?`<${n} style="${s}"><color rgb="FF${c}"/></${n}>`:`<${n}/>`;
+ const BD={all:[["thin","BFBFBF"],["thin","BFBFBF"],["thin","BFBFBF"],["thin","BFBFBF"]],tot:[["thin","BFBFBF"],["thin","BFBFBF"],["thin","404040"],["double","404040"]],
+  hdr:[["thin","8EA9DB"],["thin","8EA9DB"],["thin","8EA9DB"],["thin","8EA9DB"]],bot:[[],[],[],["thin","1F3864"]],box:[["thin","1F3864"],["thin","1F3864"],["thin","1F3864"],["thin","1F3864"]]};
+ const border=b=>{if(!b)return 0;const d=BD[b];return idx(borders,"b",`<border>${sd("left",d[0][0],d[0][1])}${sd("right",d[1][0],d[1][1])}${sd("top",d[2][0],d[2][1])}${sd("bottom",d[3][0],d[3][1])}<diagonal/></border>`);};
+ const font=o=>idx(fonts,"f",`<font>${o.b?"<b/>":""}${o.i?"<i/>":""}${o.u?'<u/>':""}<sz val="${o.sz||10}"/><color rgb="FF${o.color||"000000"}"/><name val="Arial"/><family val="2"/></font>`);
+ const fill=c=>c?idx(fills,"l",`<fill><patternFill patternType="solid"><fgColor rgb="FF${c}"/><bgColor indexed="64"/></patternFill></fill>`):0;
+ const BUILTIN={"General":0,"0":1,"0.00":2,"#,##0":3,"#,##0.00":4,"0%":9,"0.00%":10};
+ const numfmt=f=>{if(f==null)return 0;if(BUILTIN[f]!=null)return BUILTIN[f];const k="n"+f;if(K[k]==null){K[k]=164+nfs.length;nfs.push(`<numFmt numFmtId="${K[k]}" formatCode="${xe(f)}"/>`);}return K[k];};
+ function xf(o){const key="x"+JSON.stringify(o);if(K[key]!=null)return K[key];
+  const f=font(o),fl=fill(o.fill),bd=border(o.bd),nf=numfmt(o.nf),al=(o.h||o.v||o.wrap||o.ind||o.rot)?`<alignment${o.h?` horizontal="${o.h}"`:""}${o.v?` vertical="${o.v}"`:""}${o.wrap?' wrapText="1"':""}${o.ind?` indent="${o.ind}"`:""}/>`:"";
+  const x=`<xf numFmtId="${nf}" fontId="${f}" fillId="${fl}" borderId="${bd}" xfId="0"${nf?' applyNumberFormat="1"':""} applyFont="1"${fl?' applyFill="1"':""}${bd?' applyBorder="1"':""}${al?` applyAlignment="1">${al}</xf>`:"/>"}`;
+  K[key]=xfs.length;xfs.push(x);return K[key];}
+ function dxf(o){const k="d"+JSON.stringify(o);if(K[k]!=null)return K[k];K[k]=dxfs.length;dxfs.push(`<dxf>${o.color?`<font>${o.b?"<b/>":""}<color rgb="FF${o.color}"/></font>`:""}${o.fill?`<fill><patternFill patternType="solid"><bgColor rgb="FF${o.fill}"/></patternFill></fill>`:""}</dxf>`);return K[k];}
+ const xml=()=>HEAD+`<styleSheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main">${nfs.length?`<numFmts count="${nfs.length}">${nfs.join("")}</numFmts>`:""}<fonts count="${fonts.length}">${fonts.join("")}</fonts><fills count="${fills.length}">${fills.join("")}</fills><borders count="${borders.length}">${borders.join("")}</borders><cellStyleXfs count="1"><xf numFmtId="0" fontId="0" fillId="0" borderId="0"/></cellStyleXfs><cellXfs count="${xfs.length}">${xfs.join("")}</cellXfs><cellStyles count="1"><cellStyle name="Normal" xfId="0" builtinId="0"/></cellStyles><dxfs count="${dxfs.length}">${dxfs.join("")}</dxfs><tableStyles count="0" defaultTableStyle="TableStyleMedium2" defaultPivotStyle="PivotStyleLight16"/></styleSheet>`;
+ return{xf,dxf,xml};}
+/* ---------- sổ và sheet ---------- */
+function Book(){const B={sheets:[],names:[],st:Styles()};
+ B.sheet=(name,o)=>{const s=Sheet(B,name,o||{});B.sheets.push(s);return s;};
+ B.name=(nm,sheet,ref,cmt)=>B.names.push({nm,sheet:sheet.name,ref,cmt});
+ return B;}
+function Sheet(B,name,o){const S={B,name,o,cells:new Map(),w:{},h:{},mg:[],cf:[],dv:[],hl:[],ch:[],maxR:1,maxC:1,brk:[]};
+ S.set=(r,c,v,s)=>{const cell=(v!=null&&typeof v==="object")?{f:v.f,s}:{v:v==null?null:v,s};S.cells.set(r*20000+c,cell);if(r>S.maxR)S.maxR=r;if(c>S.maxC)S.maxC=c;return cell;};
+ S.get=(r,c)=>S.cells.get(r*20000+c);
+ S.x=(r,c)=>qn(name)+"!"+AD(r,c);                       /* tham chiếu 1 ô từ sheet khác */
+ S.xa=(r,c)=>qn(name)+"!"+AB(r,c);
+ S.xr=(r,c1,c2,r2)=>qn(name)+"!"+AB(r,c1)+":"+AB(r2||r,c2);  /* vùng (tuyệt đối) */
+ S.width=(c,w)=>{S.w[c]=w;};S.height=(r,h)=>{S.h[r]=h;};
+ S.merge=(r1,c1,r2,c2)=>{S.mg.push(AD(r1,c1)+":"+AD(r2,c2));};
+ return S;}
+/* ---------- bộ tính công thức (để file có sẵn kết quả, mở trên điện thoại vẫn thấy số) ---------- */
+const isE=x=>x!=null&&typeof x==="object"&&"err" in x,isA=x=>x!=null&&typeof x==="object"&&Array.isArray(x.a),ER=e=>({err:e});
+function evaluate(B){
+ const byName={};B.sheets.forEach(s=>byName[s.name.toLowerCase()]=s);
+ const names={};B.names.forEach(n=>names[n.nm.toUpperCase()]=n);
+ const memo=new Map(),BUSY={busy:1},asts=new Map();
+ function cellV(sh,r,c){const key=sh.name+"\u0001"+r+"\u0001"+c,m=memo.get(key);if(m!==undefined){if(m===BUSY)throw new Error("Công thức vòng lặp tại "+sh.name+"!"+AD(r,c));return m;}
+  const cell=sh.get(r,c);let v=null;
+  if(cell){if(cell.f!=null){memo.set(key,BUSY);let x;try{x=ev(parse(cell.f),sh);}catch(e){e.message+=" ["+sh.name+"!"+AD(r,c)+": ="+cell.f+"]";throw e;}if(isA(x))x=x.a[0][0];if(x==null)x=0;cell.cv=x;v=x;}else v=cell.v;}
+  memo.set(key,v);return v;}
+ const TK=/\s*(?:("(?:[^"]|"")*")|('(?:[^']|'')+'!\$?[A-Z]{1,3}\$?\d+(?::\$?[A-Z]{1,3}\$?\d+)?)|(\$?[A-Z]{1,3}\$?\d+(?::\$?[A-Z]{1,3}\$?\d+)?)(?![A-Za-z0-9_(])|(\d+(?:\.\d+)?(?:[eE][+-]?\d+)?)|([A-Za-z_][A-Za-z0-9_.]*)(\s*\()?|(<=|>=|<>|[-+*/^&=<>(),]))/y;
+ function lex(s){const t=[];TK.lastIndex=0;while(TK.lastIndex<s.length){const p=TK.lastIndex,m=TK.exec(s);if(!m){if(/^\s*$/.test(s.slice(p)))break;throw new Error("Không đọc được công thức tại vị trí "+p);}
+   if(m[1]!=null)t.push({t:"s",v:m[1].slice(1,-1).replace(/""/g,'"')});
+   else if(m[2]!=null){const i=m[2].lastIndexOf("'!");t.push({t:"r",sh:m[2].slice(1,i).replace(/''/g,"'"),a:m[2].slice(i+2)});}
+   else if(m[3]!=null)t.push({t:"r",sh:null,a:m[3]});
+   else if(m[4]!=null)t.push({t:"n",v:+m[4]});
+   else if(m[5]!=null)t.push(m[6]?{t:"f",v:m[5].toUpperCase()}:{t:"id",v:m[5]});
+   else t.push({t:"o",v:m[7]});}
+  return t;}
+ function parse(f){let a=asts.get(f);if(a)return a;const t=lex(f);let i=0;const nx=()=>t[i++],isO=v=>t[i]&&t[i].t==="o"&&t[i].v===v;
+  const CMP=["=","<>","<",">","<=",">="];
+  function cmp(){let l=cat();while(t[i]&&t[i].t==="o"&&CMP.includes(t[i].v)){const o=nx().v;l={k:"b",o,l,r:cat()};}return l;}
+  function cat(){let l=add();while(isO("&")){nx();l={k:"b",o:"&",l,r:add()};}return l;}
+  function add(){let l=mul();while(isO("+")||isO("-")){const o=nx().v;l={k:"b",o,l,r:mul()};}return l;}
+  function mul(){let l=pw();while(isO("*")||isO("/")){const o=nx().v;l={k:"b",o,l,r:pw()};}return l;}
+  function pw(){let l=un();while(isO("^")){nx();l={k:"b",o:"^",l,r:un()};}return l;}
+  function un(){if(isO("-")){nx();return{k:"u",a:un()};}if(isO("+")){nx();return un();}return prim();}
+  function prim(){const x=nx();if(!x)throw new Error("Thiếu toán hạng");
+   if(x.t==="n"||x.t==="s")return{k:"c",v:x.v};if(x.t==="r")return{k:"r",sh:x.sh,a:x.a};
+   if(x.t==="id"){const u=x.v.toUpperCase();if(u==="TRUE"||u==="FALSE")return{k:"c",v:u==="TRUE"};return{k:"nm",v:u};}
+   if(x.t==="f"){const args=[];if(isO(")")){nx();return{k:"f",n:x.v,args};}for(;;){args.push(cmp());if(isO(",")){nx();continue;}if(isO(")")){nx();break;}throw new Error("Thiếu dấu )");}return{k:"f",n:x.v,args};}
+   if(x.t==="o"&&x.v==="("){const e=cmp();if(!isO(")"))throw new Error("Thiếu dấu )");nx();return e;}
+   throw new Error("Ký hiệu lạ "+x.v);}
+  const e=cmp();if(i<t.length)throw new Error("Thừa ký hiệu");asts.set(f,e);return e;}
+ const cr=x=>{const m=/^([A-Z]+)(\d+)$/.exec(x.replace(/\$/g,""));return{c:CI(m[1]),r:+m[2]};};
+ function region(nd,sh){const s=nd.sh?byName[nd.sh.toLowerCase()]:sh;if(!s)return null;const p=nd.a.split(":"),a=cr(p[0]),b=p[1]?cr(p[1]):a;return{s,r1:Math.min(a.r,b.r),c1:Math.min(a.c,b.c),r2:Math.max(a.r,b.r),c2:Math.max(a.c,b.c)};}
+ function rv(g){if(g.r1===g.r2&&g.c1===g.c2)return cellV(g.s,g.r1,g.c1);const a=[];for(let r=g.r1;r<=g.r2;r++){const row=[];for(let c=g.c1;c<=g.c2;c++)row.push(cellV(g.s,r,c));a.push(row);}return{a};}
+ function ev(nd,sh){switch(nd.k){
+  case"c":return nd.v;
+  case"r":{const g=region(nd,sh);return g?rv(g):ER("#REF!");}
+  case"nm":{const d=names[nd.v];if(!d)throw new Error("Tên chưa khai báo: "+nd.v);return ev({k:"r",sh:d.sheet,a:d.ref},sh);}
+  case"u":return bin("-",0,ev(nd.a,sh));
+  case"b":return bin(nd.o,ev(nd.l,sh),ev(nd.r,sh));
+  case"f":return fn(nd.n,nd.args,sh);}}
+ const num=v=>v==null?0:typeof v==="number"?v:typeof v==="boolean"?(v?1:0):isE(v)?v:(v!==""&&isFinite(+v)?+v:ER("#VALUE!"));
+ const str=v=>v==null?"":typeof v==="boolean"?(v?"TRUE":"FALSE"):typeof v==="number"?String(+v.toPrecision(15)):String(v);
+ const truthy=v=>v==null?false:typeof v==="boolean"?v:typeof v==="number"?v!==0:isE(v)?v:(String(v).toUpperCase()==="TRUE"?true:String(v).toUpperCase()==="FALSE"?false:ER("#VALUE!"));
+ function cmpOp(o,x,y){const ty=v=>v==null?"e":typeof v==="number"?"n":typeof v==="string"?"s":"b";let tx=ty(x),tz=ty(y);
+  if(tx==="e"&&tz==="e"){x=0;y=0;tx=tz="n";}else if(tx==="e"){x=tz==="s"?"":tz==="b"?false:0;tx=tz;}else if(tz==="e"){y=tx==="s"?"":tx==="b"?false:0;tz=tx;}
+  let c;if(tx!==tz){const od={n:0,s:1,b:2};c=od[tx]-od[tz];}else if(tx==="s"){const a=x.toLowerCase(),b=y.toLowerCase();c=a<b?-1:a>b?1:0;}else{const d=(+x)-(+y);c=d<0?-1:d>0?1:0;}
+  return o==="="?c===0:o==="<>"?c!==0:o==="<"?c<0:o===">"?c>0:o==="<="?c<=0:c>=0;}
+ function bin1(o,x,y){if(isE(x))return x;if(isE(y))return y;if(o==="&")return str(x)+str(y);
+  if(o.length===2||o==="="||o==="<"||o===">")return cmpOp(o,x,y);
+  const a=num(x),b=num(y);if(isE(a))return a;if(isE(b))return b;
+  if(o==="+"||o==="-"){const v=o==="+"?a+b:a-b;return Math.abs(v)<=Math.max(Math.abs(a),Math.abs(b))*1e-15?0:v;}  /* như Excel: hiệu rất gần 0 thì bằng 0 */
+  return o==="*"?a*b:o==="/"?(b===0?ER("#DIV/0!"):a/b):Math.pow(a,b);}
+ function bin(o,x,y){if(!isA(x)&&!isA(y))return bin1(o,x,y);const A=isA(x)?x.a:[[x]],Bm=isA(y)?y.a:[[y]],R=Math.max(A.length,Bm.length),C=Math.max(A[0].length,Bm[0].length),a=[];
+  for(let i=0;i<R;i++){const p=A[A.length===1?0:i],q=Bm[Bm.length===1?0:i],row=[];if(!p||!q)return ER("#N/A");for(let j=0;j<C;j++)row.push(bin1(o,p[p.length===1?0:j],q[q.length===1?0:j]));a.push(row);}return{a};}
+ const flat=v=>isA(v)?[].concat(...v.a):[v];
+ function nums(args,sh){const out=[];for(const nd of args){const v=ev(nd,sh),ref=nd.k==="r"||nd.k==="nm";
+   if(isA(v)){for(const x of flat(v)){if(isE(x))return x;if(typeof x==="number")out.push(x);}}
+   else if(isE(v))return v;else if(ref){if(typeof v==="number")out.push(v);}else{const x=num(v);if(isE(x))return x;out.push(x);}}
+  return out;}
+ function crit(c){if(typeof c==="number")return x=>typeof x==="number"&&x===c;const m=/^(<=|>=|<>|<|>|=)?(.*)$/.exec(String(c)),op=m[1]||"=",t=m[2],isN=t!==""&&isFinite(+t);
+  return x=>{if(isN){if(typeof x!=="number")return op==="<>";return cmpOp(op,x,+t);}if(x==null||typeof x!=="string")return op==="<>"?true:(t===""&&x==null);return cmpOp(op,x,t);};}
+ function pairs(ys,xs){const Y=flat(ys),X=flat(xs),p=[];for(let i=0;i<Math.min(Y.length,X.length);i++)if(typeof Y[i]==="number"&&typeof X[i]==="number")p.push([X[i],Y[i]]);return p;}
+ function fn(nm,args,sh){const E=i=>ev(args[i],sh),N=i=>{const v=E(i);return isA(v)?v.a[0][0]:v;};
+  switch(nm){
+   case"IF":{const c=truthy(N(0));if(isE(c))return c;const j=c?1:2;return args.length>j?ev(args[j],sh):(c?true:false);}
+   case"IFERROR":{const v=E(0);return isE(v)?E(1):v;}
+   case"AND":case"OR":{let has=false,acc=nm==="AND";for(let i=0;i<args.length;i++)for(const x of flat(E(i))){if(isE(x))return x;if(x==null||typeof x==="string")continue;has=true;const b=typeof x==="boolean"?x:x!==0;acc=nm==="AND"?acc&&b:acc||b;}return has?acc:ER("#VALUE!");}
+   case"NOT":{const v=truthy(N(0));return isE(v)?v:!v;}
+   case"ISNUMBER":{const v=N(0);return typeof v==="number";}
+   case"SUM":{const a=nums(args,sh);return isE(a)?a:a.reduce((s,x)=>s+x,0);}
+   case"COUNT":{const a=nums(args,sh);return isE(a)?a:a.length;}
+   case"AVERAGE":{const a=nums(args,sh);if(isE(a))return a;return a.length?a.reduce((s,x)=>s+x,0)/a.length:ER("#DIV/0!");}
+   case"MIN":case"MAX":{const a=nums(args,sh);if(isE(a))return a;return a.length?Math[nm==="MIN"?"min":"max"](...a):0;}
+   case"MEDIAN":{const a=nums(args,sh);if(isE(a))return a;if(!a.length)return ER("#NUM!");a.sort((x,y)=>x-y);const h=a.length>>1;return a.length%2?a[h]:(a[h-1]+a[h])/2;}
+   case"ABS":{const v=num(N(0));return isE(v)?v:Math.abs(v);}
+   case"ROUND":case"ROUNDUP":case"ROUNDDOWN":{const x=num(N(0)),d=args.length>1?num(N(1)):0;if(isE(x))return x;if(isE(d))return d;const p=Math.pow(10,d),q=+(Math.abs(x)*p).toPrecision(15),s=x<0?-1:1;
+    return s*(nm==="ROUND"?Math.round(q):nm==="ROUNDUP"?Math.ceil(q):Math.floor(q))/p;}
+   case"SUMPRODUCT":{let acc=null;for(let i=0;i<args.length;i++){let v=E(i);if(isE(v))return v;if(!isA(v))v={a:[[v]]};
+     if(!acc){acc=v.a.map(r=>r.slice());continue;}if(v.a.length!==acc.length||v.a[0].length!==acc[0].length)return ER("#VALUE!");
+     acc=acc.map((r,ri)=>r.map((x,ci)=>{const y=v.a[ri][ci];if(isE(x))return x;if(isE(y))return y;return(typeof x==="number"?x:0)*(typeof y==="number"?y:0);}));}
+    let s=0;for(const r of acc)for(const x of r){if(isE(x))return x;if(typeof x==="number")s+=x;}return s;}
+   case"INDEX":{let v=E(0);if(isE(v))return v;if(!isA(v))v={a:[[v]]};const a=v.a;let r=num(N(1)),c=args.length>2?num(N(2)):null;if(isE(r))return r;if(isE(c))return c;
+    if(c==null){if(a.length===1){c=r;r=1;}else c=1;}r=Math.trunc(r);c=Math.trunc(c);if(r<1||c<1||r>a.length||c>a[0].length)return ER("#REF!");return a[r-1][c-1];}
+   case"MATCH":{const x=N(0),L=flat(E(1));for(let i=0;i<L.length;i++)if(L[i]!=null&&cmpOp("=",L[i],x))return i+1;return ER("#N/A");}
+   case"COUNTIF":{const t=crit(N(1));return flat(E(0)).filter(t).length;}
+   case"SUMIF":{const R=flat(E(0)),S2=args.length>2?flat(E(2)):R,t=crit(N(1));let s=0;R.forEach((x,i)=>{if(t(x)&&typeof S2[i]==="number")s+=S2[i];});return s;}
+   case"SLOPE":case"INTERCEPT":case"RSQ":{const p=pairs(E(0),E(1));if(p.length<2)return ER("#DIV/0!");const mx=p.reduce((s,q)=>s+q[0],0)/p.length,my=p.reduce((s,q)=>s+q[1],0)/p.length;let sxy=0,sxx=0,syy=0;
+    p.forEach(([x,y])=>{sxy+=(x-mx)*(y-my);sxx+=(x-mx)*(x-mx);syy+=(y-my)*(y-my);});if(!sxx)return ER("#DIV/0!");const b=sxy/sxx;
+    return nm==="SLOPE"?b:nm==="INTERCEPT"?my-b*mx:(syy?sxy*sxy/(sxx*syy):ER("#DIV/0!"));}
+   case"DATE":{const y=num(N(0)),m=num(N(1)),d=num(N(2));return(Date.UTC(y,m-1,d)-Date.UTC(1899,11,30))/864e5;}
+   case"DAY":{const s=num(N(0));return new Date(Date.UTC(1899,11,30)+s*864e5).getUTCDate();}
+   default:throw new Error("Hàm chưa hỗ trợ: "+nm);}}
+ B.sheets.forEach(sh=>{for(const k of sh.cells.keys())cellV(sh,Math.floor(k/20000),k%20000);});
+ B.val=(sh,r,c)=>cellV(sh,r,c);
+ return B;}
+/* ---------- biểu đồ (cột + đường, trục phụ) ---------- */
+function chartXml(ch,B){
+ const vals=(sh,r,c1,c2)=>{const o=[];for(let c=c1;c<=c2;c++){const v=B.val(sh,r,c);o.push(typeof v==="number"&&isFinite(v)?v:null);}return o;};
+ const txt=(sz,b,col)=>`<c:txPr><a:bodyPr/><a:lstStyle/><a:p><a:pPr><a:defRPr sz="${sz}" b="${b?1:0}"><a:solidFill><a:srgbClr val="${col||"404040"}"/></a:solidFill><a:latin typeface="Arial"/><a:cs typeface="Arial"/></a:defRPr></a:pPr><a:endParaRPr lang="vi-VN"/></a:p></c:txPr>`;
+ const sref=(f,pts)=>`<c:strRef><c:f>${xe(f)}</c:f><c:strCache><c:ptCount val="${pts.length}"/>${pts.map((p,i)=>`<c:pt idx="${i}"><c:v>${xe(p)}</c:v></c:pt>`).join("")}</c:strCache></c:strRef>`;
+ const nref=(f,pts,fmt)=>`<c:numRef><c:f>${xe(f)}</c:f><c:numCache><c:formatCode>${xe(fmt||"General")}</c:formatCode><c:ptCount val="${pts.length}"/>${pts.map((p,i)=>p==null?"":`<c:pt idx="${i}"><c:v>${p}</c:v></c:pt>`).join("")}</c:numCache></c:numRef>`;
+ const cs=ch.cat,catPts=[];for(let c=cs.c1;c<=cs.c2;c++){const v=B.val(cs.sh,cs.r,c);catPts.push(v==null?"":String(v));}
+ const cat=`<c:cat>${sref(cs.sh.xr(cs.r,cs.c1,cs.c2),catPts)}</c:cat>`;
+ const ser=s=>s.sh.xr(s.r,ch.cat.c1,ch.cat.c2);
+ let id=0;
+ const bars=(ch.bars||[]).map(s=>`<c:ser><c:idx val="${id}"/><c:order val="${id++}"/><c:tx><c:v>${xe(s.name)}</c:v></c:tx><c:spPr><a:solidFill><a:srgbClr val="${s.color}"/></a:solidFill></c:spPr><c:invertIfNegative val="0"/>${cat}<c:val>${nref(ser(s),vals(s.sh,s.r,ch.cat.c1,ch.cat.c2),ch.yFmt)}</c:val></c:ser>`).join("");
+ const lines=(ch.lines||[]).map(s=>`<c:ser><c:idx val="${id}"/><c:order val="${id++}"/><c:tx><c:v>${xe(s.name)}</c:v></c:tx><c:spPr><a:ln w="${s.dash?19050:28575}" cap="rnd"><a:solidFill><a:srgbClr val="${s.color}"/></a:solidFill>${s.dash?'<a:prstDash val="dash"/>':""}<a:round/></a:ln></c:spPr><c:marker>${s.dash?'<c:symbol val="none"/>':`<c:symbol val="circle"/><c:size val="6"/><c:spPr><a:solidFill><a:srgbClr val="${s.color}"/></a:solidFill><a:ln><a:solidFill><a:srgbClr val="FFFFFF"/></a:solidFill></a:ln></c:spPr>`}</c:marker>`+
+  (s.labels?`<c:dLbls><c:numFmt formatCode="${xe(s.fmt||ch.y2Fmt||"0.0%")}" sourceLinked="0"/><c:spPr><a:solidFill><a:srgbClr val="FFFFFF"><a:alpha val="85000"/></a:srgbClr></a:solidFill><a:ln w="6350"><a:solidFill><a:srgbClr val="${s.color}"/></a:solidFill></a:ln></c:spPr>${txt(800,1,s.color)}<c:dLblPos val="t"/><c:showLegendKey val="0"/><c:showVal val="1"/><c:showCatName val="0"/><c:showSerName val="0"/><c:showPercent val="0"/><c:showBubbleSize val="0"/></c:dLbls>`:"")+
+  `${cat}<c:val>${nref(ser(s),vals(s.sh,s.r,ch.cat.c1,ch.cat.c2),ch.y2Fmt)}</c:val><c:smooth val="0"/></c:ser>`).join("");
+ const grid=`<c:majorGridlines><c:spPr><a:ln w="6350"><a:solidFill><a:srgbClr val="E3E3E3"/></a:solidFill></a:ln></c:spPr></c:majorGridlines>`;
+ const catAx=(id,cross,del)=>`<c:catAx><c:axId val="${id}"/><c:scaling><c:orientation val="minMax"/></c:scaling><c:delete val="${del?1:0}"/><c:axPos val="b"/><c:numFmt formatCode="General" sourceLinked="0"/><c:majorTickMark val="none"/><c:minorTickMark val="none"/><c:tickLblPos val="low"/><c:spPr><a:ln w="9525"><a:solidFill><a:srgbClr val="BFBFBF"/></a:solidFill></a:ln></c:spPr>${txt(900)}<c:crossAx val="${cross}"/><c:crosses val="autoZero"/><c:auto val="1"/><c:lblAlgn val="ctr"/><c:lblOffset val="100"/><c:noMultiLvlLbl val="0"/></c:catAx>`;
+ const valAx=(id,cross,pos,fmt,gr,crosses)=>`<c:valAx><c:axId val="${id}"/><c:scaling><c:orientation val="minMax"/></c:scaling><c:delete val="0"/><c:axPos val="${pos}"/>${gr?grid:""}<c:numFmt formatCode="${xe(fmt)}" sourceLinked="0"/><c:majorTickMark val="none"/><c:minorTickMark val="none"/><c:tickLblPos val="nextTo"/><c:spPr><a:ln><a:noFill/></a:ln></c:spPr>${txt(900)}<c:crossAx val="${cross}"/><c:crosses val="${crosses||"autoZero"}"/><c:crossBetween val="between"/></c:valAx>`;
+ let plot="";const hasB=!!bars,hasL=!!lines;
+ if(hasB)plot+=`<c:barChart><c:barDir val="col"/><c:grouping val="${ch.stacked?"stacked":"clustered"}"/><c:varyColors val="0"/>${bars}<c:gapWidth val="55"/><c:overlap val="${ch.stacked?100:-5}"/><c:axId val="101"/><c:axId val="102"/></c:barChart>`;
+ if(hasL)plot+=`<c:lineChart><c:grouping val="standard"/><c:varyColors val="0"/>${lines}<c:marker val="1"/><c:axId val="${hasB?103:101}"/><c:axId val="${hasB?104:102}"/></c:lineChart>`;
+ plot+=catAx(101,102,false)+valAx(102,101,"l",hasB?ch.yFmt:ch.y2Fmt,true);
+ if(hasB&&hasL)plot+=catAx(103,104,true)+valAx(104,103,"r",ch.y2Fmt,false,"max");
+ return HEAD+`<c:chartSpace xmlns:c="http://schemas.openxmlformats.org/drawingml/2006/chart" xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"><c:roundedCorners val="0"/><c:chart><c:title><c:tx><c:rich><a:bodyPr/><a:lstStyle/><a:p><a:pPr><a:defRPr sz="1200" b="1"/></a:pPr><a:r><a:rPr lang="vi-VN" sz="1200" b="1"><a:solidFill><a:srgbClr val="1F3864"/></a:solidFill><a:latin typeface="Arial"/><a:cs typeface="Arial"/></a:rPr><a:t>${xe(ch.title)}</a:t></a:r></a:p></c:rich></c:tx><c:overlay val="0"/></c:title><c:autoTitleDeleted val="0"/><c:plotArea><c:layout/>${plot}</c:plotArea><c:legend><c:legendPos val="b"/><c:overlay val="0"/>${txt(900)}</c:legend><c:plotVisOnly val="1"/><c:dispBlanksAs val="gap"/></c:chart><c:spPr><a:solidFill><a:srgbClr val="FFFFFF"/></a:solidFill><a:ln w="9525"><a:solidFill><a:srgbClr val="D9D9D9"/></a:solidFill></a:ln></c:spPr>${txt(900)}</c:chartSpace>`;}
+const anchor=(ch,rid,id)=>`<xdr:twoCellAnchor editAs="oneCell"><xdr:from><xdr:col>${ch.at[1]-1}</xdr:col><xdr:colOff>0</xdr:colOff><xdr:row>${ch.at[0]-1}</xdr:row><xdr:rowOff>0</xdr:rowOff></xdr:from><xdr:to><xdr:col>${ch.at[3]-1}</xdr:col><xdr:colOff>0</xdr:colOff><xdr:row>${ch.at[2]-1}</xdr:row><xdr:rowOff>0</xdr:rowOff></xdr:to><xdr:graphicFrame macro=""><xdr:nvGraphicFramePr><xdr:cNvPr id="${id}" name="Biểu đồ ${id-1}"/><xdr:cNvGraphicFramePr/></xdr:nvGraphicFramePr><xdr:xfrm><a:off x="0" y="0"/><a:ext cx="0" cy="0"/></xdr:xfrm><a:graphic><a:graphicData uri="http://schemas.openxmlformats.org/drawingml/2006/chart"><c:chart xmlns:c="http://schemas.openxmlformats.org/drawingml/2006/chart" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships" r:id="rId${rid}"/></a:graphicData></a:graphic></xdr:graphicFrame><xdr:clientData/></xdr:twoCellAnchor>`;
+/* ---------- ghi sheet ---------- */
+function cellXml(r,c,cell){const ref=AD(r,c),s=cell.s?` s="${cell.s}"`:"";
+ if(cell.f!=null){const v=cell.cv;let t="",vx="";
+  if(typeof v==="number"&&isFinite(v))vx=`<v>${v}</v>`;else if(typeof v==="string"){t=' t="str"';vx=`<v>${xe(v)}</v>`;}else if(typeof v==="boolean"){t=' t="b"';vx=`<v>${v?1:0}</v>`;}else if(isE(v)){t=' t="e"';vx=`<v>${v.err}</v>`;}
+  return`<c r="${ref}"${s}${t}><f>${xe(cell.f)}</f>${vx}</c>`;}
+ const v=cell.v;if(v==null||v==="")return`<c r="${ref}"${s}/>`;
+ if(typeof v==="number")return isFinite(v)?`<c r="${ref}"${s}><v>${v}</v></c>`:`<c r="${ref}"${s}/>`;
+ if(typeof v==="boolean")return`<c r="${ref}"${s} t="b"><v>${v?1:0}</v></c>`;
+ return`<c r="${ref}"${s} t="inlineStr"><is><t xml:space="preserve">${xe(v)}</t></is></c>`;}
+function sheetXml(S,i,hf){const rows=new Map();for(const[k,cell]of S.cells){const r=Math.floor(k/20000);if(!rows.has(r))rows.set(r,[]);rows.get(r).push([k%20000,cell]);}
+ const rk=[...new Set([...rows.keys(),...Object.keys(S.h).map(Number)])].sort((a,b)=>a-b);let sd="";
+ for(const r of rk){const cs=(rows.get(r)||[]).sort((a,b)=>a[0]-b[0]),h=S.h[r];sd+=`<row r="${r}"${h?` ht="${h}" customHeight="1"`:""}>${cs.map(([c,cell])=>cellXml(r,c,cell)).join("")}</row>`;}
+ const o=S.o,fr=o.freeze;let pane="";
+ if(fr){const[ry,cx]=fr,xs=cx-1,ys=ry-1,ap=xs&&ys?"bottomRight":ys?"bottomLeft":"topRight";pane=`<pane${xs?` xSplit="${xs}"`:""}${ys?` ySplit="${ys}"`:""} topLeftCell="${AD(ry,cx)}" activePane="${ap}" state="frozen"/><selection pane="${ap}" activeCell="${AD(ry,cx)}" sqref="${AD(ry,cx)}"/>`;}
+ const cols=Object.keys(S.w).map(Number).sort((a,b)=>a-b).map(c=>`<col min="${c}" max="${c}" width="${S.w[c]}" customWidth="1"/>`).join("");
+ let pr=1;const cf=S.cf.map(x=>`<conditionalFormatting sqref="${x.sq}">${x.rules.map(r=>r.scale?`<cfRule type="colorScale" priority="${pr++}"><colorScale><cfvo type="min"/><cfvo type="percentile" val="50"/><cfvo type="max"/><color rgb="FFF8696B"/><color rgb="FFFFEB84"/><color rgb="FF63BE7B"/></colorScale></cfRule>`:`<cfRule type="expression" dxfId="${r.dxf}" priority="${pr++}"${r.stop?' stopIfTrue="1"':""}><formula>${xe(r.f)}</formula></cfRule>`).join("")}</conditionalFormatting>`).join("");
+ const dv=S.dv.length?`<dataValidations count="${S.dv.length}">${S.dv.map(d=>`<dataValidation type="${d.type}"${d.op?` operator="${d.op}"`:""} allowBlank="1" showInputMessage="1" showErrorMessage="1"${d.prompt?` promptTitle="${xe(d.pt||"Nhập")}" prompt="${xe(d.prompt)}"`:""} errorTitle="Giá trị không hợp lệ" error="${xe(d.err||"Chọn giá trị trong danh sách.")}" sqref="${d.sq}"><formula1>${xe(d.f1)}</formula1>${d.f2!=null?`<formula2>${xe(d.f2)}</formula2>`:""}</dataValidation>`).join("")}</dataValidations>`:"";
+ const hl=S.hl.length?`<hyperlinks>${S.hl.map(h=>`<hyperlink ref="${h.ref}" location="${xe(h.loc)}" display="${xe(h.tip||h.loc)}"/>`).join("")}</hyperlinks>`:"";
+ const mg=S.mg.length?`<mergeCells count="${S.mg.length}">${S.mg.map(m=>`<mergeCell ref="${m}"/>`).join("")}</mergeCells>`:"";
+ const brk=S.brk.length?`<rowBreaks count="${S.brk.length}" manualBreakCount="${S.brk.length}">${S.brk.map(r=>`<brk id="${r}" max="16383" man="1"/>`).join("")}</rowBreaks>`:"";
+ return HEAD+`<worksheet ${NS_MAIN}><sheetPr>${o.tab?`<tabColor rgb="FF${o.tab}"/>`:""}<pageSetUpPr fitToPage="1"/></sheetPr><dimension ref="A1:${AD(S.maxR,S.maxC)}"/><sheetViews><sheetView workbookViewId="0" showGridLines="0" zoomScale="${o.zoom||90}" zoomScaleNormal="${o.zoom||90}"${i===0?' tabSelected="1"':""}>${pane}</sheetView></sheetViews><sheetFormatPr defaultRowHeight="15"/>${cols?`<cols>${cols}</cols>`:""}<sheetData>${sd}</sheetData>${mg}${cf}${dv}${hl}<printOptions horizontalCentered="1"/><pageMargins left="0.35" right="0.35" top="0.6" bottom="0.55" header="0.25" footer="0.25"/><pageSetup paperSize="9" orientation="${o.portrait?"portrait":"landscape"}" fitToWidth="1" fitToHeight="0"/><headerFooter><oddHeader>${xe('&L&"Arial,Bold"&9'+hf.h+'&R&"Arial,Regular"&9&A')}</oddHeader><oddFooter>${xe('&L&"Arial,Regular"&8'+hf.f+'&R&"Arial,Regular"&8Trang &P / &N')}</oddFooter></headerFooter>${brk}<ignoredErrors><ignoredError sqref="A1:${AD(Math.max(S.maxR,1),Math.max(S.maxC,1))}" numberStoredAsText="1" formula="1" formulaRange="1" unlockedFormula="1" emptyCellReference="1"/></ignoredErrors>${S.ch.length?'<drawing r:id="rId1"/>':""}</worksheet>`;}
+/* ---------- nén zip ---------- */
+const CRCT=(()=>{const t=new Uint32Array(256);for(let n=0;n<256;n++){let c=n;for(let k=0;k<8;k++)c=c&1?0xEDB88320^(c>>>1):c>>>1;t[n]=c>>>0;}return t;})();
+const crc32=u=>{let c=0xFFFFFFFF;for(let i=0;i<u.length;i++)c=CRCT[(c^u[i])&255]^(c>>>8);return(c^0xFFFFFFFF)>>>0;};
+async function deflate(u){if(typeof CompressionStream==="undefined")return null;try{return new Uint8Array(await new Response(new Blob([u]).stream().pipeThrough(new CompressionStream("deflate-raw"))).arrayBuffer());}catch(e){return null;}}
+async function zip(files,mime){const enc=new TextEncoder(),parts=[],cen=[];let off=0;const d=new Date(),dt=((d.getHours()<<11)|(d.getMinutes()<<5)|(d.getSeconds()>>1))&0xFFFF,dd=(((d.getFullYear()-1980)<<9)|((d.getMonth()+1)<<5)|d.getDate())&0xFFFF;
+ for(const f of files){const raw=typeof f.data==="string"?enc.encode(f.data):f.data,crc=crc32(raw),cmp=await deflate(raw),use=!!(cmp&&cmp.length<raw.length),body=use?cmp:raw,nm=enc.encode(f.name);
+  const lh=new Uint8Array(30+nm.length),v=new DataView(lh.buffer);v.setUint32(0,0x04034b50,true);v.setUint16(4,20,true);v.setUint16(6,0x0800,true);v.setUint16(8,use?8:0,true);v.setUint16(10,dt,true);v.setUint16(12,dd,true);v.setUint32(14,crc,true);v.setUint32(18,body.length,true);v.setUint32(22,raw.length,true);v.setUint16(26,nm.length,true);lh.set(nm,30);
+  parts.push(lh,body);
+  const ch=new Uint8Array(46+nm.length),w=new DataView(ch.buffer);w.setUint32(0,0x02014b50,true);w.setUint16(4,20,true);w.setUint16(6,20,true);w.setUint16(8,0x0800,true);w.setUint16(10,use?8:0,true);w.setUint16(12,dt,true);w.setUint16(14,dd,true);w.setUint32(16,crc,true);w.setUint32(20,body.length,true);w.setUint32(24,raw.length,true);w.setUint16(28,nm.length,true);w.setUint32(42,off,true);ch.set(nm,46);cen.push(ch);
+  off+=lh.length+body.length;}
+ const cl=cen.reduce((s,x)=>s+x.length,0),end=new Uint8Array(22),e=new DataView(end.buffer);e.setUint32(0,0x06054b50,true);e.setUint16(8,files.length,true);e.setUint16(10,files.length,true);e.setUint32(12,cl,true);e.setUint32(16,off,true);
+ return new Blob([...parts,...cen,end],{type:mime});}
+/* ---------- ghi cả sổ ---------- */
+async function save(B,meta){evaluate(B);meta=meta||{};
+ const files=[],ov=[],N=B.sheets.length,hf={h:String(meta.head||"").replace(/&/g,"&&"),f:String(meta.foot||"").replace(/&/g,"&&")};let chN=0,drN=0;
+ B.sheets.forEach((S,i)=>{
+  if(S.ch.length){drN++;const anc=[],rel=[];S.ch.forEach((ch,j)=>{chN++;files.push({name:`xl/charts/chart${chN}.xml`,data:chartXml(ch,B)});ov.push(`<Override PartName="/xl/charts/chart${chN}.xml" ContentType="application/vnd.openxmlformats-officedocument.drawingml.chart+xml"/>`);
+    rel.push(`<Relationship Id="rId${j+1}" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/chart" Target="../charts/chart${chN}.xml"/>`);anc.push(anchor(ch,j+1,j+2));});
+   files.push({name:`xl/drawings/drawing${drN}.xml`,data:HEAD+`<xdr:wsDr xmlns:xdr="http://schemas.openxmlformats.org/drawingml/2006/spreadsheetDrawing" xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main">${anc.join("")}</xdr:wsDr>`});
+   files.push({name:`xl/drawings/_rels/drawing${drN}.xml.rels`,data:HEAD+`<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">${rel.join("")}</Relationships>`});
+   ov.push(`<Override PartName="/xl/drawings/drawing${drN}.xml" ContentType="application/vnd.openxmlformats-officedocument.drawing+xml"/>`);
+   files.push({name:`xl/worksheets/_rels/sheet${i+1}.xml.rels`,data:HEAD+`<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/drawing" Target="../drawings/drawing${drN}.xml"/></Relationships>`});}
+  files.push({name:`xl/worksheets/sheet${i+1}.xml`,data:sheetXml(S,i,hf)});});
+ const dn=[];B.sheets.forEach((S,i)=>{if(S.o.titles)dn.push(`<definedName name="_xlnm.Print_Titles" localSheetId="${i}">${xe(S.o.titles.map(t=>qn(S.name)+"!"+t).join(","))}</definedName>`);});
+ B.names.forEach(n=>dn.push(`<definedName name="${n.nm}"${n.cmt?` comment="${xe(n.cmt)}"`:""}>${xe(qn(n.sheet)+"!"+n.ref)}</definedName>`));
+ const iso=new Date().toISOString().replace(/\.\d+Z$/,"Z");
+ files.unshift(
+  {name:"[Content_Types].xml",data:HEAD+`<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Default Extension="xml" ContentType="application/xml"/><Override PartName="/xl/workbook.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml"/>${B.sheets.map((_,i)=>`<Override PartName="/xl/worksheets/sheet${i+1}.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/>`).join("")}<Override PartName="/xl/styles.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.styles+xml"/><Override PartName="/docProps/core.xml" ContentType="application/vnd.openxmlformats-package.core-properties+xml"/><Override PartName="/docProps/app.xml" ContentType="application/vnd.openxmlformats-officedocument.extended-properties+xml"/>${ov.join("")}</Types>`},
+  {name:"_rels/.rels",data:HEAD+`<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="xl/workbook.xml"/><Relationship Id="rId2" Type="http://schemas.openxmlformats.org/package/2006/relationships/metadata/core-properties" Target="docProps/core.xml"/><Relationship Id="rId3" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/extended-properties" Target="docProps/app.xml"/></Relationships>`},
+  {name:"docProps/core.xml",data:HEAD+`<cp:coreProperties xmlns:cp="http://schemas.openxmlformats.org/package/2006/metadata/core-properties" xmlns:dc="http://purl.org/dc/elements/1.1/" xmlns:dcterms="http://purl.org/dc/terms/" xmlns:dcmitype="http://purl.org/dc/dcmitype/" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"><dc:title>${xe(meta.title||"Báo cáo")}</dc:title><dc:creator>Báo cáo TMĐT (offline)</dc:creator><cp:lastModifiedBy>Báo cáo TMĐT (offline)</cp:lastModifiedBy><dcterms:created xsi:type="dcterms:W3CDTF">${iso}</dcterms:created><dcterms:modified xsi:type="dcterms:W3CDTF">${iso}</dcterms:modified></cp:coreProperties>`},
+  {name:"docProps/app.xml",data:HEAD+`<Properties xmlns="http://schemas.openxmlformats.org/officeDocument/2006/extended-properties" xmlns:vt="http://schemas.openxmlformats.org/officeDocument/2006/docPropsVTypes"><Application>Microsoft Excel</Application><DocSecurity>0</DocSecurity><ScaleCrop>false</ScaleCrop><Company></Company><AppVersion>16.0300</AppVersion></Properties>`},
+  {name:"xl/workbook.xml",data:HEAD+`<workbook ${NS_MAIN}><workbookPr defaultThemeVersion="164011"/><bookViews><workbookView xWindow="0" yWindow="0" windowWidth="28800" windowHeight="15600" tabRatio="850" activeTab="0"/></bookViews><sheets>${B.sheets.map((S,i)=>`<sheet name="${xe(S.name)}" sheetId="${i+1}" r:id="rId${i+1}"/>`).join("")}</sheets>${dn.length?`<definedNames>${dn.join("")}</definedNames>`:""}<calcPr calcId="191029" fullCalcOnLoad="1"/></workbook>`},
+  {name:"xl/_rels/workbook.xml.rels",data:HEAD+`<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">${B.sheets.map((_,i)=>`<Relationship Id="rId${i+1}" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet" Target="worksheets/sheet${i+1}.xml"/>`).join("")}<Relationship Id="rId${N+1}" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/styles" Target="styles.xml"/></Relationships>`},
+  {name:"xl/styles.xml",data:B.st.xml()});
+ return zip(files,"application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");}
+return{CN,CI,AD,AB,qn,Book,save,evaluate,isE};
+})();
+/* ===================== XUẤT EXCEL – nội dung sổ báo cáo (mọi tổng, tỷ lệ, phân bổ là công thức) ===================== */
+function xlBook(){
+ const B=XL.Book(),st=B.st,{CN,AD,AB}=XL,n=MF.n,mo=MF.months,yr=D.year,vis=VIS(),has=t=>vis.includes(t),viewer=ROLE==="viewer";
+ const P=D.plan,hasPlan=!!(P&&(P.nmv||P.gmv)),PY=hasPlan?P.year:"";
+ /* ---------- màu, định dạng số, kiểu ô ---------- */
+ const C={navy:"1F3864",blue:"2F5597",sec:"EAF0F8",tot:"D9E2F1",inp:"FFF2CC",inF:"0000FF",link:"00703C",gray:"7F7F7F",ok:"C6EFCE",okF:"006100",bad:"FFC7CE",badF:"9C0006",warn:"FFEB9C",warnF:"9C5700"};
+ const NF={amt:'#,##0;[Red]-#,##0;"-"',cnt:'#,##0;[Red]-#,##0;"-"',dong:'#,##0;[Red]-#,##0;"-"',num1:'#,##0.0;[Red]-#,##0.0;"-"',num2:'#,##0.00;[Red]-#,##0.00;"-"',rate:'0.00%;[Red]-0.00%;"-"',rate1:'0.0%;[Red]-0.0%;"-"',pt:'+0.00%;[Red]-0.00%;0.00%',x:'0.00"x";[Red]-0.00"x";"-"',int:'0',chk:'#,##0;[Red]-#,##0;"✓"',txt:'@'};
+ const Y={t:st.xf({b:1,sz:15,color:C.navy}),st:st.xf({i:1,sz:9,color:"595959"}),h:st.xf({b:1,color:"FFFFFF",fill:C.navy,h:"center",v:"center",wrap:1,bd:"hdr"}),hl:st.xf({b:1,color:"FFFFFF",fill:C.navy,h:"left",v:"center",wrap:1,bd:"hdr"}),
+  band:st.xf({b:1,color:"FFFFFF",fill:C.blue,v:"center"}),stat:st.xf({i:1,sz:8,color:C.gray,h:"center",bd:"all"}),statL:st.xf({i:1,sz:8,color:C.gray,bd:"all"}),note:st.xf({i:1,sz:9,color:"404040",wrap:1,v:"top"}),
+  txt:st.xf({bd:"all",wrap:1,v:"center"}),txtC:st.xf({bd:"all",wrap:1,v:"center",h:"center"}),txtB:st.xf({bd:"all",wrap:1,v:"center",b:1}),h2:st.xf({b:1,sz:12,color:C.navy,bd:"bot"}),lnk:st.xf({u:1,color:"0563C1",bd:"all",v:"center",b:1}),
+  lab:st.xf({b:1,color:"404040",v:"center"}),inTxt:st.xf({bd:"all",fill:C.inp,color:C.inF,b:1,h:"center",v:"center"}),inTxtL:st.xf({bd:"all",fill:C.inp,color:C.inF,v:"center"}),calcTxt:st.xf({bd:"all",b:1,v:"center",color:C.navy}),stTxt:st.xf({bd:"all",b:1,v:"center",wrap:1})};
+ const nst=(kind,cls,role,ex)=>st.xf(Object.assign({nf:NF[kind]||NF.amt,bd:cls==="tot"?"tot":"all",b:cls==="sec"||cls==="tot"?1:0,fill:cls==="sec"?C.sec:cls==="tot"?C.tot:role==="input"?C.inp:null,color:role==="input"||role==="const"?C.inF:role==="link"?C.link:null,h:"right",v:"center"},ex||{}));
+ const lst=(cls,ind,it)=>st.xf({bd:cls==="tot"?"tot":"all",b:cls==="sec"||cls==="tot"?1:0,fill:cls==="sec"?C.sec:cls==="tot"?C.tot:null,ind:ind||0,i:it?1:0,v:"center",color:it?"595959":null});
+ const DX={ok:st.dxf({fill:C.ok,color:C.okF}),bad:st.dxf({fill:C.bad,color:C.badF}),warn:st.dxf({fill:C.warn,color:C.warnF}),okF:st.dxf({color:C.okF,b:1}),badF:st.dxf({color:C.badF,b:1})};
+ /* ---------- công thức ---------- */
+ const P_=x=>/^('[^']+'!)?\$?[A-Z]{1,3}\$?\d+$/.test(x)||/^\d+(\.\d+)?$/.test(x)||/^[A-Za-z_][A-Za-z0-9_]*$/.test(x)?x:"("+x+")";
+ const DIV=(a,b)=>`IF(${P_(b)}=0,"",${P_(a)}/${P_(b)})`;
+ const RE_LINK=/^'[^']+'!\$?[A-Z]{1,3}\$?\d+$/;
+ function put(sh,r,c,v,kind,cls,role,ex){if(typeof v==="string")v={f:v};let rl=role;if(!rl)rl=v&&v.f!=null?(RE_LINK.test(v.f)?"link":"calc"):typeof v==="number"?"const":"calc";sh.set(r,c,v,nst(kind||"amt",cls,rl,ex));}
+ const z=x=>x==null||!isFinite(x)?null:Math.round(x*1e6);   /* triệu → đồng */
+ /* ---------- bố cục bảng theo tháng ---------- */
+ const LA={c1:2,n,cl:2+n,cp:3+n,cb:4+n,lab:m=>mo[m]+"/"+yr};
+ const LK={c1:2,n:12,cl:14,cp:15,cb:0,lab:m=>MO12[m]+"/"+PY};
+ const CM=i=>2+i,CL=LA.cl,CP=LA.cp,CB=LA.cb;
+ const mwidth=(sh,L)=>{L=L||LA;sh.width(1,54);for(let i=0;i<L.n;i++)sh.width(L.c1+i,L.n>11?15.3:16.5);sh.width(L.cl,18);sh.width(L.cp,12.5);if(L.cb)sh.width(L.cb,16.5);};
+ const title=(sh,t,sub,sub2)=>{sh.set(1,1,t,Y.t);sh.height(1,24);if(sub)sh.set(2,1,sub,Y.st);if(sub2)sh.set(3,1,sub2,Y.st);};
+ function mhead(sh,r,first,L,ex,stat){L=L||LA;sh.set(r,1,first||"Chỉ tiêu (đơn vị: đồng)",Y.hl);for(let i=0;i<L.n;i++)sh.set(r,L.c1+i,L.lab(i),Y.h);
+  const e=ex||(L===LA?["Lũy kế\n"+mo[0]+"–"+mo[n-1],"% doanh số\nlũy kế","Bình quân\ntháng"]:["Cả năm "+PY,"% NMV"]);e.forEach((t,j)=>sh.set(r,L.cl+j,t,Y.h));sh.height(r,32);
+  if(stat){sh.set(r+1,1,"Trạng thái số liệu",Y.statL);for(let i=0;i<n;i++)sh.set(r+1,CM(i),{f:SRC.x(SR.stat,CM(i))},Y.stat);e.forEach((t,j)=>sh.set(r+1,L.cl+j,null,Y.stat));}}
+ function lay(specs,r0,R){let r=r0;for(const s of specs){s.r=r;if(s.k)R[s.k]=r;r+=1+(s.gap?1:0);}return r;}
+ function wr(sh,specs,o={}){const L=o.L||LA,last=o.last||(L.cb||L.cp);for(const s of specs){const r=s.r;
+  if(s.band){sh.set(r,1,s.band,Y.band);for(let c=2;c<=last;c++)sh.set(r,c,null,Y.band);sh.height(r,19);continue;}
+  if(s.head){s.head.forEach((t,j)=>sh.set(r,1+j,t,j?Y.h:Y.hl));sh.height(r,s.hh||30);continue;}
+  if(s.note){sh.set(r,1,s.note,Y.note);sh.merge(r,1,r,last);sh.height(r,s.nh||28);continue;}
+  const kind=s.kind||"amt",cls=s.cls||"",isSum=kind==="amt"||kind==="cnt";sh.set(r,1,s.l,lst(cls,s.ind,s.it));
+  for(let i=0;i<L.n;i++)put(sh,r,L.c1+i,s.f?s.f(L.c1+i,i):null,kind,cls,s.role);
+  if(o.noTot)continue;
+  const tot=s.tot||(isSum?"sum":"same");
+  put(sh,r,L.cl,tot==="sum"?`SUM(${AD(r,L.c1)}:${AD(r,L.c1+L.n-1)})`:tot==="same"&&s.f?s.f(L.cl,-1):typeof tot==="function"?tot(r):null,kind,cls);
+  if(o.noExtra)continue;
+  put(sh,r,L.cp,kind==="amt"&&o.nmv&&s.pct!==false&&tot!=="none"?DIV(AD(r,L.cl),AD(o.nmv,L.cl)):null,"rate1",cls);
+  if(L.cb)put(sh,r,L.cb,isSum&&tot==="sum"?`${AD(r,L.cl)}/${L.n}`:null,kind,cls);
+  if(s.ex)s.ex.forEach((fx,j)=>{const v=fx(r);put(sh,r,L.cp+1+j,v?v.f:null,v?v.kind||kind:kind,cls);});}}
+ const cfTarget=(sh,r,c1,c2,tgt)=>sh.cf.push({sq:AD(r,c1)+":"+AD(r,c2),rules:[{f:`AND(ISNUMBER(${AD(r,c1)}),${AD(r,c1)}>=${tgt})`,dxf:DX.okF},{f:`AND(ISNUMBER(${AD(r,c1)}),${AD(r,c1)}<${tgt})`,dxf:DX.badF}]});
+ /* ---------- danh sách sheet (theo thứ tự tab) ---------- */
+ const incCash=has("cash"),incKho=has("kho"),incDrv=has("drv"),incKH=hasPlan&&(has("plan")||has("khth")),incKHTH=hasPlan&&has("khth"),incChk=has("ctrl");
+ const shopKeys=Object.keys(D.shops||{}).map(Number).filter(i=>i<n&&D.shops[String(i)]&&Array.isArray(D.shops[String(i)].names)).sort((a,b)=>a-b),incShop=shopKeys.length>0&&(has("fee")||has("cash"));
+ const COV=B.sheet("Mục lục",{tab:C.navy,portrait:1,zoom:100}),OV=B.sheet("Tổng quan",{tab:"2F5597",zoom:90}),KQ=B.sheet("KQKD",{tab:"1F3864",freeze:[6,2],titles:["$A:$A","$4:$5"]}),
+  TK=B.sheet("Theo kênh",{tab:"7030A0",freeze:[6,2],titles:["$A:$A","$4:$5"]}),PS=B.sheet("Phí sàn",{tab:"EE4D2D",freeze:[6,2],titles:["$A:$A","$4:$5"]}),
+  CF=incCash?B.sheet("Dòng tiền",{tab:"00B050",freeze:[6,2],titles:["$A:$A","$4:$5"]}):null,KV=incKho?B.sheet("Kho vận",{tab:"ED7D31",freeze:[6,2],titles:["$A:$A","$4:$5"]}):null,
+  BS=incDrv?B.sheet("Biến số",{tab:"FFC000",freeze:[6,2]}):null,KH=incKH?B.sheet("KH "+PY,{tab:"C00000",freeze:[1,2],titles:["$A:$A"]}):null,GA=incKH?B.sheet("KH giả định",{tab:"FFC000",zoom:90}):null,
+  KT=incKHTH?B.sheet("KH-TH tháng",{tab:"C00000"}):null,SHP=incShop?B.sheet("Theo shop",{tab:"EE4D2D",freeze:[1,2]}):null,CK=incChk?B.sheet("Kiểm tra",{tab:"00B050",freeze:[6,2]}):null,
+  SRC=B.sheet("Số liệu nguồn",{tab:"7F7F7F",freeze:[5,2],titles:["$A:$A","$4:$4"]});
+ /* ===================== SỐ LIỆU NGUỒN ===================== */
+ const SR={tot:{},sp:{},tt:{}};
+ {const sh=SRC;mwidth(sh);sh.width(CL+1,11);
+  title(sh,"SỐ LIỆU NGUỒN TMĐT NĂM "+yr,"Nguồn: "+(D.source||"–")+" · Đơn vị: đồng (số đơn: đơn) · cập nhật "+(D.savedAt||"–"),"Chữ xanh dương = số liệu gốc nhập từ file BCKD (sheet TỔNG HỢP và các sheet Tn-Chi tiết). Sửa số ở đây thì mọi sheet báo cáo tự tính lại.");
+  sh.set(4,1,"Chỉ tiêu",Y.hl);mo.forEach((m,i)=>sh.set(4,CM(i),m,Y.h));sh.set(4,CL,"Lũy kế\n"+mo[0]+"–"+mo[n-1],Y.h);sh.set(4,CL+1,"Mã dòng",Y.h);sh.height(4,32);
+  sh.set(5,1,"Tháng số (dùng trong công thức chọn kỳ)",Y.statL);mo.forEach((m,i)=>put(sh,5,CM(i),i+1,"int","","const",{h:"center"}));
+  SR.stat=6;sh.set(6,1,"Trạng thái số liệu",Y.statL);mo.forEach((m,i)=>sh.set(6,CM(i),(D.status||[])[i]||"",Y.stat));
+  sh.set(7,1,"Năm số liệu",Y.statL);put(sh,7,2,+yr,"int","","const",{h:"center"});
+  B.name("ThangSo",sh,AB(5,CM(0))+":"+AB(5,CM(n-1)),"Số thứ tự tháng 1..n");B.name("ThangNhan",sh,AB(4,CM(0))+":"+AB(4,CM(n-1)),"Nhãn tháng T1..Tn");B.name("NamTT",sh,AB(7,2),"Năm số liệu thực tế");
+  let r=8;const sec=t=>{sh.set(r,1,t,Y.band);for(let c=2;c<=CL+1;c++)sh.set(r,c,null,Y.band);r++;};
+  const vv=(o,k,i,cnt)=>{const x=o&&o[k]&&o[k][i];if(x==null||x===""||!isFinite(x))return null;return cnt?Math.round(+x):Math.round(+x*1e6);};
+  const line=(map,key,label,o,cnt)=>{map[key]=r;sh.set(r,1,label,lst("",0));for(let i=0;i<n;i++)put(sh,r,CM(i),vv(o,key,i,cnt),cnt?"cnt":"amt","","const");put(sh,r,CL,`SUM(${AD(r,CM(0))}:${AD(r,CM(n-1))})`,cnt?"cnt":"amt","");sh.set(r,CL+1,key,Y.stat);r++;};
+  sec("A. TỔNG HỢP TMĐT (sheet TỔNG HỢP "+n+" THÁNG)");Object.keys(TOT_LBL).forEach(k=>line(SR.tot,k,TOT_LBL[k],D.tot,COUNT.has(k)));
+  [["sp","B. SHOPEE (sheet Tn-Chi tiết)"],["tt","C. TIKTOK (sheet Tn-Chi tiết)"]].forEach(([ch,t])=>{sec(t);["nmv","orders",...LINES].forEach(k=>line(SR[ch],k,CH_LBL[k],D[ch],k==="orders"));});
+  if(incChk&&D.recon&&Array.isArray(D.recon.kq_ct)){sec("D. ĐỐI CHIẾU: KQKD THEO BÁO CÁO TỪNG THÁNG (sheet Tn-Chi tiết)");line(SR,"kqct","KQKD theo báo cáo tháng (Tn-Chi tiết)",{kqct:D.recon.kq_ct},false);}
+  const ks=Object.keys(D.settle||{}).map(Number).filter(i=>i<n);
+  if(ks.length){sec("E. TIỀN CHỜ SÀN QUYẾT TOÁN (cuối tháng)");const arr=k=>({[k]:mo.map((_,i)=>D.settle[String(i)]?D.settle[String(i)][k]:null)});line(SR,"dscho","Doanh số chờ quyết toán",arr("ds_cho"),false);line(SR,"phitt","Phí sàn tạm tính phần chờ quyết toán",arr("phi_tt"),false);
+   SR.stsrc=r;sh.set(r,1,"Nguồn số liệu chờ quyết toán",lst("",0,1));for(let i=0;i<n;i++)sh.set(r,CM(i),D.settle[String(i)]?D.settle[String(i)].src||"":"",Y.stat);r++;}}
+ const sT=k=>c=>SRC.x(SR.tot[k],c);
+ /* ===================== KQKD ===================== */
+ const K={};
+ {const sh=KQ,L=(r,c)=>AD(r,c);mwidth(sh);
+  title(sh,"BÁO CÁO KẾT QUẢ KINH DOANH TMĐT NĂM "+yr+" ("+mo[0]+"–"+mo[n-1]+")","Đơn vị: đồng · số liệu lấy từ sheet Số liệu nguồn (chữ xanh lá = liên kết) · tổng, tỷ lệ là công thức (chữ đen).","Giá vốn dùng tính KQKD = doanh số sau hoàn − chênh lệch mua bán (theo sổ). Lương các bộ phận cộng một dòng vì T10 đổi cơ cấu bộ phận; chi tiết từng bộ phận ở dòng con.");
+  mhead(sh,4,null,LA,null,true);
+  const sp=[{band:"I. DOANH SỐ VÀ ĐƠN HÀNG"},
+   {k:"don_dat",l:"Số đơn đặt",kind:"cnt",f:sT("don_dat")},{k:"don_hh",l:"Số đơn hoàn/hủy",kind:"cnt",f:sT("don_hh")},{k:"don_tc",l:"Số đơn thành công",kind:"cnt",cls:"sec",f:sT("don_tc")},
+   {k:"r_hh",l:"Tỷ lệ hoàn/hủy theo đơn",kind:"rate",ind:1,f:c=>DIV(L(K.don_hh,c),L(K.don_dat,c))},
+   {k:"gmv",l:"(1) Doanh số đặt đơn (GMV)",f:sT("gmv")},{k:"ds_huy",l:"(2) Doanh số hủy",f:sT("ds_huy")},{k:"ds_xk",l:"(3) Doanh số đã xuất kho",f:sT("ds_xk")},{k:"ds_hoan",l:"(4) Doanh số hoàn",f:sT("ds_hoan")},
+   {k:"nmv",l:"(5) DOANH SỐ SAU HOÀN HỦY (NMV)",cls:"sec",f:sT("nmv")},
+   {k:"r_nmv",l:"NMV / GMV",kind:"rate",ind:1,f:c=>DIV(L(K.nmv,c),L(K.gmv,c))},{k:"aov",l:"Giá trị đơn bình quân (đồng/đơn)",kind:"dong",ind:1,f:c=>DIV(L(K.nmv,c),L(K.don_tc,c))},
+   {band:"II. GIÁ VỐN"},
+   {k:"gv",l:"Giá vốn (= doanh số − chênh lệch mua bán)",f:c=>`IF(${SRC.x(SR.tot.clmb,c)}<>0,${SRC.x(SR.tot.nmv,c)}-${SRC.x(SR.tot.clmb,c)},${SRC.x(SR.tot.gv,c)})`},
+   {k:"gv_s",l:"Dòng “Giá vốn” trên sheet TỔNG HỢP (để đối chiếu)",ind:1,it:1,f:sT("gv")},
+   {k:"clmb",l:"CHÊNH LỆCH MUA BÁN (= NMV − giá vốn)",cls:"sec",f:c=>`${L(K.nmv,c)}-${L(K.gv,c)}`},{k:"r_gv",l:"Giá vốn / NMV",kind:"rate",ind:1,f:c=>DIV(L(K.gv,c),L(K.nmv,c))},
+   {band:"III. PHÍ SÀN"},
+   {k:"dinh",l:"ĐỊNH PHÍ SÀN",cls:"sec",f:c=>`SUM(${AD(K.tt,c)}:${AD(K.tncn,c)})`},...["tt","cd","sfp","vc","ht","ps","gtgt","tncn"].map(k=>({k,l:TOT_LBL[k],ind:1,f:sT(k)})),
+   {k:"bien",l:"BIẾN PHÍ SÀN",cls:"sec",f:c=>`SUM(${AD(K.hh,c)}:${AD(K.btg,c)})`},...["hh","aff1","aff2","aff3","gcd","ship"].map(k=>({k,l:TOT_LBL[k],ind:1,f:sT(k)})),
+   {k:"btg",l:"Bồi thường, bồi hoàn, giảm trừ",ind:1,f:c=>`${sT("bt")(c)}+${sT("bh")(c)}+${sT("gtr")(c)}`},
+   {k:"r_ps",l:"Phí sàn (định phí + biến phí) / NMV",kind:"rate",ind:1,f:c=>DIV(`${L(K.dinh,c)}+${L(K.bien,c)}`,L(K.nmv,c))},
+   {k:"lng",l:"LỢI NHUẬN GỘP (= NMV − giá vốn − phí sàn)",cls:"tot",f:c=>`${L(K.nmv,c)}-${L(K.gv,c)}-${L(K.dinh,c)}-${L(K.bien,c)}`},{k:"r_lng",l:"Biên lợi nhuận gộp",kind:"rate",ind:1,f:c=>DIV(L(K.lng,c),L(K.nmv,c))},
+   {band:"IV. CHI PHÍ BÁN HÀNG"},
+   {k:"cpbh",l:"CP BÁN HÀNG BIẾN ĐỘNG",cls:"sec",f:c=>`${L(K.ads,c)}+${L(K.bhk,c)}`},{k:"ads",l:"Chi phí ADS",ind:1,f:sT("ads")},
+   {k:"r_ads",l:"ADS / NMV",kind:"rate",ind:2,f:c=>DIV(L(K.ads,c),L(K.nmv,c))},{k:"roas",l:"ROAS (NMV / ADS)",kind:"x",ind:2,f:c=>DIV(L(K.nmv,c),L(K.ads,c))},
+   {k:"bhk",l:"CP bán hàng khác (booking, marketing, quà, thẻ cào, hoàn tiền)",ind:1,f:c=>`SUM(${AD(K.booking,c)}:${AD(K.hoantien,c)})`},...["booking","mkt","qua","the_cao","hoantien"].map(k=>({k,l:TOT_LBL[k],ind:2,f:sT(k)})),
+   {k:"ldg",l:"LÃI ĐÓNG GÓP (= lợi nhuận gộp − CP bán hàng)",cls:"tot",f:c=>`${L(K.lng,c)}-${L(K.cpbh,c)}`},{k:"r_ldg",l:"Lãi đóng góp / NMV",kind:"rate",ind:1,f:c=>DIV(L(K.ldg,c),L(K.nmv,c))},
+   {band:"V. CHI PHÍ VẬN HÀNH, THU NHẬP VÀ CHI PHÍ KHÁC"},
+   {k:"vhbd",l:"CP VẬN HÀNH BIẾN ĐỘNG",cls:"sec",f:sT("vhbd")},...["ct","ng","pl","vcx"].map(k=>({k,l:TOT_LBL[k],ind:1,f:sT(k)})),
+   {k:"kpi",l:"Thưởng KPI các bộ phận (= tổng − chi tiết)",ind:1,f:c=>`${L(K.vhbd,c)}-SUM(${AD(K.ct,c)}:${AD(K.vcx,c)})`},
+   {k:"vhcd",l:"CP VẬN HÀNH CỐ ĐỊNH",cls:"sec",f:sT("vhcd")},{k:"lsal",l:"Lương bộ máy TMĐT (cộng các bộ phận)",ind:1,f:c=>`SUM(${AD(K.l_qlvh,c)}:${AD(K.l_live,c)})`},
+   ...["l_qlvh","l_san","l_cskh","l_ads","l_kd","l_tlk","l_media","l_live"].map(k=>({k,l:TOT_LBL[k],ind:2,f:sT(k)})),
+   {k:"luong_vd",l:TOT_LBL.luong_vd,ind:1,f:sT("luong_vd")},{k:"ccdc",l:TOT_LBL.ccdc,ind:1,f:sT("ccdc")},{k:"vp",l:TOT_LBL.vp,ind:1,f:sT("vp")},
+   {k:"vhk",l:"Điện, nước, viễn thông, sửa chữa, khác (= tổng − chi tiết)",ind:1,f:c=>`${L(K.vhcd,c)}-${L(K.lsal,c)}-${L(K.luong_vd,c)}-${L(K.ccdc,c)}-${L(K.vp,c)}`},
+   {k:"tnk",l:"THU NHẬP KHÁC",f:sT("tnk")},{k:"cpk",l:"CHI PHÍ KHÁC",f:sT("cpk")},
+   {band:"VI. KẾT QUẢ KINH DOANH"},
+   {k:"kq",l:"KẾT QUẢ KINH DOANH (tính lại từ các dòng trên)",cls:"tot",f:c=>`${L(K.ldg,c)}-${L(K.vhbd,c)}-${L(K.vhcd,c)}+${L(K.tnk,c)}-${L(K.cpk,c)}`},
+   {k:"mg",l:"Biên KQKD (KQKD / NMV) – xanh: đạt mục tiêu, đỏ: chưa đạt",kind:"rate",ind:1,f:c=>DIV(L(K.kq,c),L(K.nmv,c))},
+   {k:"gap",l:"Chênh lệch so mục tiêu biên (KQKD − mục tiêu × NMV)",ind:1,f:c=>`${L(K.kq,c)}-MucTieu*${L(K.nmv,c)}`},
+   {k:"kq_s",l:"KQKD theo sổ (sheet TỔNG HỢP)",ind:1,it:1,f:sT("kqkd")},{k:"kq_d",l:"Chênh lệch: tính lại − theo sổ",ind:1,it:1,f:c=>`${L(K.kq,c)}-${L(K.kq_s,c)}`},
+   {k:"tndn",l:"Thuế TNDN / TNCN tạm tính",f:sT("tndn")},{k:"r_tax",l:"Thuế / KQKD",kind:"rate",ind:1,f:c=>DIV(L(K.tndn,c),L(K.kq,c))},
+   {k:"lnr",l:"LỢI NHUẬN RÒNG (= KQKD − thuế)",cls:"tot",f:c=>`${L(K.kq,c)}-${L(K.tndn,c)}`},{k:"lnr_s",l:"Lợi nhuận ròng theo sổ",ind:1,it:1,f:sT("lnr")}];
+  lay(sp,6,K);wr(sh,sp,{nmv:K.nmv});cfTarget(sh,K.mg,CM(0),CL,"MucTieu");}
+ const q=k=>c=>KQ.x(K[k],c);
+ /* ===================== PHÍ SÀN (dòng phí từng kênh) ===================== */
+ const PB={sp:{},tt:{},ns:{},all:{},rc:{}},PR={sp:{},tt:{}};
+ {const sh=PS,RC=PB.rc,src=(ch,k)=>c=>SRC.x(SR[ch][k],c);mwidth(sh);
+  title(sh,"PHÍ SÀN THEO KÊNH NĂM "+yr,"Đơn vị: đồng · Shopee, TikTok lấy từ sheet Tn-Chi tiết; Ngoại sàn = Tổng hợp − Shopee − TikTok; Tổng = cộng 3 kênh.","Chênh lệch giữa sheet TỔNG HỢP và chi tiết sàn dưới 2.000.000 đ/dòng coi là làm tròn và cộng vào TikTok (giống cách app tính) – xem bảng đối chiếu cuối sheet.");
+  mhead(sh,4,null,LA,null,true);
+  const totLine=(k,c)=>k==="hh"?`${sT("hh")(c)}+${sT("aff1")(c)}+${sT("aff2")(c)}+${sT("aff3")(c)}`:k==="ship"?`${sT("ship")(c)}+${sT("bt")(c)}+${sT("bh")(c)}+${sT("gtr")(c)}`:k==="vatcty"?`${sT("gtgt")(c)}+${sT("tncn")(c)}-${src("sp","thue")(c)}-${src("tt","thue")(c)}`:sT(k)(c);
+  const hasCh=c=>`OR(${src("sp","nmv")(c)}<>0,${src("tt","nmv")(c)}<>0)`;
+  const cell=(ch,k)=>{if(ch==="sp")return src("sp",k);
+   if(ch==="tt")return k==="vatcty"?src("tt",k):k==="thue"?c=>`${src("tt","thue")(c)}+${AD(RC.vatcty,c)}-${AD(PB.ns.vatcty,c)}`:c=>`${src("tt",k)(c)}+${AD(RC[k],c)}-${AD(PB.ns[k],c)}`;
+   if(ch==="ns")return k==="thue"?()=>"0":c=>`IF(AND(ABS(${AD(RC[k],c)})<2000000,${hasCh(c)}),0,${AD(RC[k],c)})`;
+   return c=>`${AD(PB.sp[k],c)}+${AD(PB.tt[k],c)}+${AD(PB.ns[k],c)}`;};
+  const NAME={sp:"SHOPEE – số liệu sàn (sheet Tn-Chi tiết)",tt:"TIKTOK – số liệu sàn + chênh lệch làm tròn",ns:"NGOẠI SÀN / CSKH (= Tổng hợp − Shopee − TikTok)",all:"TỔNG TMĐT (= Shopee + TikTok + Ngoại sàn)"};
+  const blk=ch=>{const R=PB[ch],sum3=k=>c=>`${AD(PB.sp[k],c)}+${AD(PB.tt[k],c)}+${AD(PB.ns[k],c)}`;
+   const base=ch==="sp"||ch==="tt"?{nmv:src(ch,"nmv"),orders:src(ch,"orders")}:ch==="ns"?{nmv:c=>AD(RC.nmv,c),orders:c=>AD(RC.orders,c)}:{nmv:sum3("nmv"),orders:sum3("orders")};
+   return[{band:NAME[ch]},{k:"nmv",l:"Doanh số sau hoàn (NMV)",cls:"sec",f:base.nmv},{k:"orders",l:"Đơn thành công",kind:"cnt",f:base.orders},{k:"aov",l:"Giá trị đơn bình quân (đồng/đơn)",kind:"dong",ind:1,f:c=>DIV(AD(R.nmv,c),AD(R.orders,c))},
+    ...["tt","cd","sfp","vc","ht","ps","thue","vatcty"].map(k=>({k,l:CH_LBL[k],ind:1,f:cell(ch,k)})),{k:"dinh",l:"ĐỊNH PHÍ SÀN",cls:"sec",f:c=>`SUM(${AD(R.tt,c)}:${AD(R.vatcty,c)})`},
+    ...["hh","gcd","ship"].map(k=>({k,l:CH_LBL[k],ind:1,f:cell(ch,k)})),{k:"bien",l:"BIẾN PHÍ SÀN",cls:"sec",f:c=>`SUM(${AD(R.hh,c)}:${AD(R.ship,c)})`},
+    {k:"phisan",l:"TỔNG PHÍ SÀN (chưa ADS, gồm thuế)",cls:"tot",f:c=>`${AD(R.dinh,c)}+${AD(R.bien,c)}`},{k:"net",l:"Phí sàn sàn cấn trừ (= tổng phí − thuế GTGT công ty)",ind:1,f:c=>`${AD(R.phisan,c)}-${AD(R.vatcty,c)}`},
+    {k:"ads",l:CH_LBL.ads,f:cell(ch,"ads")},{k:"psads",l:"TỔNG PHÍ SÀN + ADS",cls:"tot",f:c=>`${AD(R.phisan,c)}+${AD(R.ads,c)}`},{k:"roas",l:"ROAS (NMV / ADS)",kind:"x",ind:1,f:c=>DIV(AD(R.nmv,c),AD(R.ads,c)),gap:1}];};
+  const pct=ch=>{const F=PB[ch],R=PR[ch],tr=TAR[ch]||{},L=(k,po)=>({k,l:CH_LBL[k]+(po?" (đồng/đơn)":""),kind:po?"dong":"rate",ind:1,f:c=>po?DIV(AD(F[k],c),AD(F.orders,c)):DIV(AD(F[k],c),AD(F.nmv,c)),tar:tr[k]?tr[k].t:""}),
+    S2=(k,l,cl)=>({k:"p_"+k,l,kind:"rate",cls:cl,f:c=>DIV(AD(F[k],c),AD(F.nmv,c))});
+   return[{band:"TỶ LỆ PHÍ "+CHN[ch].toUpperCase()+" – % doanh số sau hoàn (hạ tầng, Piship: đồng/đơn), so với biểu phí"},{head:["Khoản phí",...mo.map(m=>m+"/"+yr),"Lũy kế","Biểu phí"]},
+    L("tt"),L("cd"),L("sfp"),L("vc"),L("ht",1),L("ps",1),L("thue"),L("vatcty"),S2("dinh","ĐỊNH PHÍ SÀN","sec"),L("hh"),L("gcd"),L("ship"),S2("bien","BIẾN PHÍ SÀN","sec"),S2("phisan","TỔNG PHÍ SÀN (chưa ADS)","tot"),L("ads"),S2("psads","TỔNG PHÍ SÀN + ADS","tot")].map((s,j,a)=>(j===a.length-1?Object.assign(s,{gap:1}):s));};
+  const rcs=[{band:"ĐỐI CHIẾU: SHEET TỔNG HỢP − SHOPEE − TIKTOK (phần còn lại thuộc Ngoại sàn; dưới 2.000.000 đ coi là làm tròn, cộng vào TikTok)"},
+   {k:"nmv",l:"Doanh số sau hoàn",f:c=>`${sT("nmv")(c)}-${src("sp","nmv")(c)}-${src("tt","nmv")(c)}`},{k:"orders",l:"Đơn thành công",kind:"cnt",f:c=>`${sT("don_tc")(c)}-${src("sp","orders")(c)}-${src("tt","orders")(c)}`},
+   ...LINES.filter(k=>k!=="thue").map(k=>({k,l:CH_LBL[k]+(k==="vatcty"?" (= GTGT + TNCN tổng hợp − thuế sàn đã khấu trừ)":k==="hh"?" (gồm affiliate)":k==="ship"?" (gồm bồi thường, bồi hoàn, giảm trừ)":""),ind:1,f:c=>`${totLine(k,c)}-${src("sp",k)(c)}-${src("tt",k)(c)}`}))];
+  const SPC={},SPR={};let pos=6;["sp","tt","ns","all"].forEach(ch=>{SPC[ch]=blk(ch);pos=lay(SPC[ch],pos,PB[ch]);});
+  ["sp","tt"].forEach(ch=>{SPR[ch]=pct(ch);pos=lay(SPR[ch],pos,PR[ch]);});
+  pos=lay(rcs,pos,RC);
+  ["sp","tt","ns","all"].forEach(ch=>wr(sh,SPC[ch],{nmv:PB[ch].nmv}));
+  ["sp","tt"].forEach(ch=>{const b=SPR[ch];wr(sh,b,{noExtra:1});b.forEach(s=>{if(s.tar!=null&&!s.band&&!s.head)sh.set(s.r,CP,s.tar||"–",Y.txtC);else if(!s.band&&!s.head&&s.k)sh.set(s.r,CP,"",Y.txtC);});});
+  wr(sh,rcs,{noExtra:1});}
+ /* ===================== THEO KÊNH ===================== */
+ const TB={sp:{},tt:{},ns:{},all:{}};
+ {const sh=TK;mwidth(sh);
+  title(sh,"KẾT QUẢ KINH DOANH THEO KÊNH NĂM "+yr,"Đơn vị: đồng · doanh số, phí sàn, ADS: số trực tiếp của từng kênh (sheet Phí sàn) · giá vốn, chi phí chung phân bổ theo tỷ trọng doanh số; lương kho phân bổ theo số đơn.","Tổng TMĐT = cộng 3 kênh và phải khớp sheet KQKD (xem sheet Kiểm tra).");
+  mhead(sh,4,null,LA,null,true);
+  const blk=ch=>{const R=TB[ch],F=PB[ch],x=k=>c=>PS.x(F[k],c),al=(k)=>c=>`IF(${q("nmv")(c)}=0,0,${q(k)(c)}*${AD(R.nmv,c)}/${q("nmv")(c)})`,s3=k=>c=>`${AD(TB.sp[k],c)}+${AD(TB.tt[k],c)}+${AD(TB.ns[k],c)}`,A=ch==="all";
+   const nm={sp:"SHOPEE",tt:"TIKTOK",ns:"NGOẠI SÀN (CSKH)",all:"TỔNG TMĐT (= cộng 3 kênh)"}[ch];
+   return[{band:nm},{k:"orders",l:"Đơn thành công",kind:"cnt",f:A?s3("orders"):x("orders")},{k:"aov",l:"Giá trị đơn bình quân (đồng/đơn)",kind:"dong",ind:1,f:c=>DIV(AD(R.nmv,c),AD(R.orders,c))},
+    {k:"nmv",l:"DOANH SỐ SAU HOÀN (NMV)",cls:"sec",f:A?s3("nmv"):x("nmv")},{k:"sh",l:"Tỷ trọng doanh số",kind:"rate",ind:1,f:c=>DIV(AD(R.nmv,c),q("nmv")(c))},
+    {k:"gv",l:"Giá vốn (phân bổ theo doanh số)",f:A?s3("gv"):al("gv")},{k:"net",l:"Phí sàn (sàn cấn trừ)",f:A?s3("net"):x("net")},{k:"vat",l:"Thuế GTGT công ty phải nộp",f:A?s3("vat"):x("vatcty")},
+    {k:"lng",l:"LỢI NHUẬN GỘP",cls:"sec",f:c=>`${AD(R.nmv,c)}-${AD(R.gv,c)}-${AD(R.net,c)}-${AD(R.vat,c)}`},
+    {k:"ads",l:"Chi phí ADS",f:A?s3("ads"):x("ads")},{k:"roas",l:"ROAS (NMV / ADS)",kind:"x",ind:1,f:c=>DIV(AD(R.nmv,c),AD(R.ads,c))},
+    {k:"bhk",l:"CP bán hàng khác (phân bổ theo doanh số)",f:A?s3("bhk"):al("bhk")},{k:"ldg",l:"LÃI ĐÓNG GÓP",cls:"sec",f:c=>`${AD(R.lng,c)}-${AD(R.ads,c)}-${AD(R.bhk,c)}`},
+    {k:"vhbd",l:"Vận hành biến động (phân bổ)",f:A?s3("vhbd"):al("vhbd")},
+    {k:"kho",l:"Lương kho vận đơn (phân bổ theo số đơn)",f:A?s3("kho"):c=>`IF(${q("don_tc")(c)}<>0,${q("luong_vd")(c)}*${AD(R.orders,c)}/${q("don_tc")(c)},IF(${q("nmv")(c)}<>0,${q("luong_vd")(c)}*${AD(R.nmv,c)}/${q("nmv")(c)},0))`},
+    {k:"vhcd",l:"Vận hành cố định khác (phân bổ)",f:A?s3("vhcd"):c=>`IF(${q("nmv")(c)}=0,0,(${q("vhcd")(c)}-${q("luong_vd")(c)})*${AD(R.nmv,c)}/${q("nmv")(c)})`},
+    {k:"tnk",l:"Thu nhập khác (phân bổ)",f:A?s3("tnk"):al("tnk")},{k:"cpk",l:"Chi phí khác (phân bổ)",f:A?s3("cpk"):al("cpk")},
+    {k:"kq",l:"KẾT QUẢ KINH DOANH",cls:"tot",f:c=>`${AD(R.ldg,c)}-${AD(R.vhbd,c)}-${AD(R.kho,c)}-${AD(R.vhcd,c)}+${AD(R.tnk,c)}-${AD(R.cpk,c)}`},
+    {k:"mg",l:"Biên KQKD",kind:"rate",ind:1,f:c=>DIV(AD(R.kq,c),AD(R.nmv,c))},{k:"kqv",l:"KQKD trước thuế GTGT công ty",f:c=>`${AD(R.kq,c)}+${AD(R.vat,c)}`},
+    {k:"shk",l:"Tỷ trọng KQKD",kind:"rate",ind:1,f:c=>DIV(AD(R.kq,c),q("kq")(c)),gap:1}];};
+  let pos=6;const bl={};["sp","tt","ns","all"].forEach(ch=>{bl[ch]=blk(ch);pos=lay(bl[ch],pos,TB[ch]);});
+  ["sp","tt","ns","all"].forEach(ch=>{wr(sh,bl[ch],{nmv:TB[ch].nmv});cfTarget(sh,TB[ch].mg,CM(0),CL,"MucTieu");});}
+ const tk=(ch,k)=>c=>TK.x(TB[ch][k],c);
+ /* ===================== DÒNG TIỀN ===================== */
+ const CB_={all:{},sp:{},tt:{},ns:{}};
+ if(CF){const sh=CF;mwidth(sh);
+  title(sh,"DÒNG TIỀN QUẢN TRỊ THEO KÊNH NĂM "+yr,"Đơn vị: đồng · ước tính từ KQKD: phí sàn bị sàn giữ lại trước khi chuyển tiền; ADS ghi theo số nạp; tiền hàng, lương, chi phí giả định chi trong tháng.","Chưa tính thay đổi tồn kho, công nợ nhà cung cấp. Số âm = tiền chi ra.");
+  mhead(sh,4,null,LA,null,true);
+  const blk=ch=>{const R=CB_[ch],t=k=>tk(ch,k);return[{band:"DÒNG TIỀN "+(ch==="all"?"TỔNG TMĐT":CHN[ch].toUpperCase())},
+   {k:"in",l:"Khách trả (doanh số sau hoàn)",cls:"sec",f:t("nmv")},{k:"fee",l:"Sàn cấn trừ phí (định phí + biến phí sàn)",ind:1,f:c=>`-${t("net")(c)}`},
+   {k:"pay",l:"TIỀN SÀN TRẢ VỀ TÀI KHOẢN",cls:"tot",f:c=>`${AD(R.in,c)}+${AD(R.fee,c)}`},{k:"rp",l:"Tỷ lệ tiền về / doanh số",kind:"rate",ind:1,f:c=>DIV(AD(R.pay,c),AD(R.in,c))},
+   {k:"vat",l:"Nộp thuế GTGT công ty",ind:1,f:c=>`-${t("vat")(c)}`},{k:"ads",l:"Nạp / chi ADS",ind:1,f:c=>`-${t("ads")(c)}`},{k:"gv",l:"Tiền hàng (giá vốn, phân bổ)",ind:1,f:c=>`-${t("gv")(c)}`},
+   {k:"bhk",l:"CP bán hàng khác (booking, quà, marketing)",ind:1,f:c=>`-${t("bhk")(c)}`},{k:"opx",l:"Lương, vận hành, kho (phân bổ)",ind:1,f:c=>`-(${t("vhbd")(c)}+${t("kho")(c)}+${t("vhcd")(c)}+${t("cpk")(c)})`},
+   {k:"tnk",l:"Thu nhập khác",ind:1,f:t("tnk")},{k:"cf",l:"DÒNG TIỀN KINH DOANH (≈ KQKD)",cls:"tot",f:c=>`${AD(R.pay,c)}+SUM(${AD(R.vat,c)}:${AD(R.tnk,c)})`},
+   ...(ch==="all"?[{k:"tax",l:"Thuế TNDN / TNCN",ind:1,f:c=>`-${q("tndn")(c)}`},{k:"net",l:"DÒNG TIỀN THUẦN (≈ lợi nhuận ròng)",cls:"tot",f:c=>`${AD(R.cf,c)}+${AD(R.tax,c)}`}]:[]),
+   {k:"cover",l:"Tiền sàn trả về / tiền hàng (lần)",kind:"x",ind:1,f:c=>DIV(AD(R.pay,c),"-"+AD(R.gv,c)),gap:1}];};
+  let pos=6;const bl={};["all","sp","tt","ns"].forEach(ch=>{bl[ch]=blk(ch);pos=lay(bl[ch],pos,CB_[ch]);});["all","sp","tt","ns"].forEach(ch=>wr(sh,bl[ch],{nmv:CB_[ch].in}));
+  const ks=Object.keys(D.settle||{}).map(Number).filter(i=>i<n).sort((a,b)=>a-b);
+  if(ks.length&&SR.dscho){let r=pos;sh.set(r,1,"TIỀN CÒN NẰM Ở SÀN (chờ quyết toán) – tiền chờ về = doanh số chờ quyết toán − phí tạm tính",Y.band);for(let c=2;c<=8;c++)sh.set(r,c,null,Y.band);r++;
+   ["Tháng","DS chờ quyết toán","% doanh số tháng","Phí tạm tính","Tỷ lệ phí tạm tính","Tiền chờ về","≈ số ngày doanh số","Nguồn"].forEach((t,j)=>sh.set(r,1+j,t,j?Y.h:Y.hl));sh.height(r,30);r++;
+   CB_.settle=r;ks.forEach(i=>{const c=CM(i);sh.set(r,1,mo[i]+"/"+yr,lst("",0));put(sh,r,2,SRC.x(SR.dscho,c));put(sh,r,3,DIV(AD(r,2),q("nmv")(c)),"rate1");put(sh,r,4,SRC.x(SR.phitt,c));put(sh,r,5,DIV(AD(r,4),AD(r,2)),"rate1");
+    put(sh,r,6,`${AD(r,2)}-${AD(r,4)}`);put(sh,r,7,DIV(AD(r,2),q("nmv")(c)+"/30"),"num1");sh.set(r,8,{f:SRC.x(SR.stsrc,c)},Y.txt);r++;});}}
+ /* ===================== KHO VẬN ===================== */
+ if(KV){const sh=KV,R={};mwidth(sh);
+  title(sh,"HIỆU QUẢ KHO VẬN ĐƠN NĂM "+yr,"Chi phí kho vận đơn = lương kho vận đơn, BHXH, lương khoán thời vụ (dòng “Chi phí lương vận đơn” sheet TỔNG HỢP).","Xu hướng chung tính bằng hồi quy tuyến tính (INTERCEPT, SLOPE): chi phí cố định/tháng + chi phí biến đổi × số đơn.");
+  mhead(sh,4,null,LA,null,true);
+  const sp=[{band:"LƯỢNG ĐƠN"},{k:"dd",l:"Đơn đặt",kind:"cnt",cls:"sec",f:q("don_dat")},{k:"hh",l:"Đơn hoàn/hủy",kind:"cnt",f:q("don_hh")},{k:"rhh",l:"Tỷ lệ hoàn/hủy",kind:"rate",ind:1,f:c=>DIV(AD(R.hh,c),AD(R.dd,c))},
+   {k:"tc",l:"Đơn thành công",kind:"cnt",cls:"sec",f:q("don_tc")},{k:"sp",l:"– Shopee",kind:"cnt",ind:1,f:tk("sp","orders")},{k:"tt",l:"– TikTok",kind:"cnt",ind:1,f:tk("tt","orders")},{k:"ns",l:"– Ngoại sàn (CSKH)",kind:"cnt",ind:1,f:tk("ns","orders")},
+   {k:"dsns",l:"Doanh số ngoại sàn (đồng)",f:tk("ns","nmv"),pct:false},{k:"days",l:"Số ngày trong tháng",kind:"cnt",f:c=>`DAY(DATE(NamTT,${SRC.x(5,c)}+1,0))`},
+   {k:"pd",l:"Đơn thành công bình quân / ngày",kind:"num1",f:c=>DIV(AD(R.tc,c),AD(R.days,c))},
+   {band:"CHI PHÍ KHO VẬN ĐƠN"},{k:"cost",l:"Chi phí kho vận đơn",cls:"sec",f:q("luong_vd")},{k:"cpo",l:"Chi phí kho / đơn thành công (đồng)",kind:"dong",cls:"tot",f:c=>DIV(AD(R.cost,c),AD(R.tc,c))},
+   {k:"cpd",l:"Chi phí kho / đơn đặt (đồng)",kind:"dong",ind:1,f:c=>DIV(AD(R.cost,c),AD(R.dd,c))},{k:"cps",l:"Chi phí kho / doanh số",kind:"rate",cls:"tot",f:c=>DIV(AD(R.cost,c),q("nmv")(c))},
+   {k:"trend",l:"Chi phí theo xu hướng chung (= cố định + biến đổi × số đơn)",ind:1,f:c=>`$B$${0}+$B$${0}*${AD(R.tc,c)}`,tot:"sum"},{k:"res",l:"Chênh lệch thực tế − xu hướng (dương = tốn hơn mức chung)",ind:1,f:c=>`${AD(R.cost,c)}-${AD(R.trend,c)}`,tot:r=>`ROUND(SUM(${AD(r,CM(0))}:${AD(r,CM(n-1))}),0)`,gap:1}];
+  let pos=lay(sp,6,R);const ra=pos+1,rb=pos+2,rr=pos+3;sp.find(s=>s.k==="trend").f=c=>`$B$${ra}+$B$${rb}*${AD(R.tc,c)}`;wr(sh,sp,{});
+  const rng=k=>`${AD(R[k],CM(0))}:${AD(R[k],CM(n-1))}`;
+  sh.set(pos,1,"THỐNG KÊ CHI PHÍ KHO "+mo[0]+"–"+mo[n-1],Y.band);for(let c=2;c<=4;c++)sh.set(pos,c,null,Y.band);
+  [[ra,"Chi phí cố định ước tính / tháng (INTERCEPT)",`INTERCEPT(${rng("cost")},${rng("tc")})`,"amt"],[rb,"Chi phí biến đổi ước tính / đơn thành công (SLOPE)",`SLOPE(${rng("cost")},${rng("tc")})`,"dong"],[rr,"Độ phù hợp của xu hướng (R²)",`RSQ(${rng("cost")},${rng("tc")})`,"rate1"],
+   [rr+1,"Chi phí kho bình quân / đơn thành công (lũy kế)",DIV(AD(R.cost,CL),AD(R.tc,CL)),"dong"],[rr+2,"Chi phí kho / doanh số (lũy kế)",DIV(AD(R.cost,CL),q("nmv")(CL)),"rate"]].forEach(([r,l,f,k])=>{sh.set(r,1,l,lst("",0));put(sh,r,2,f,k,"");});}
+ /* ===================== BIẾN SỐ & MÔ PHỎNG ===================== */
+ if(BS){const sh=BS,R={},A=TB.all,x=(k,c)=>TK.x(A[k],c),FA=MF.ch.all;mwidth(sh);
+  title(sh,"BIẾN SỐ KẾT QUẢ KINH DOANH VÀ MÔ PHỎNG","Phần 1: tách chênh lệch KQKD tổng TMĐT so tháng trước thành tác động của từng biến số (cộng các tác động = chênh lệch KQKD). Phần 2–4: mô phỏng, sửa ô vàng để thử.","Số đơn, giá trị đơn tính theo tỷ suất lãi biến đổi tháng trước; tỷ lệ chi phí tính trên doanh số tháng này.");
+  mhead(sh,4,"Biến số (đồng)",LA,["","",""],true);
+  const ok=i=>i>0&&FA.nmv[i]&&FA.nmv[i-1],g2=(f)=>(c,i)=>ok(i)?f(c):null;
+  const N0=c=>x("nmv",c-1),N1=c=>x("nmv",c),Q0=c=>x("orders",c-1),Q1=c=>x("orders",c),cost=(c,ks)=>ks.map(k=>x(k,c)).join("+");
+  const RT=[["gv",["gv"],"Tác động: tỷ lệ giá vốn"],["ps",["net","vat"],"Tác động: tỷ lệ phí sàn (gồm thuế GTGT công ty)"],["ads",["ads"],"Tác động: tỷ lệ ADS"],["bhk",["bhk"],"Tác động: tỷ lệ CP bán hàng khác"]];
+  const F_=c=>`${x("vhbd",c)}+${x("kho",c)}+${x("vhcd",c)}+${x("cpk",c)}`;
+  const sp=[{band:"1. PHÂN TÍCH CHÊNH LỆCH KQKD TỔNG TMĐT SO VỚI THÁNG TRƯỚC (cột = tháng này so tháng liền trước)"},
+   {k:"kq0",l:"KQKD tháng trước",cls:"sec",f:g2(c=>x("kq",c-1))},
+   {k:"v0",l:"Tỷ suất lãi biến đổi tháng trước (1 − giá vốn, phí sàn, ADS, CP bán hàng khác / NMV)",kind:"rate",ind:1,f:g2(c=>`1-(${cost(c-1,["gv","net","vat","ads","bhk"])})/${N0(c)}`)},
+   {k:"a0",l:"Giá trị đơn bình quân tháng trước (đồng)",kind:"dong",ind:1,f:g2(c=>DIV(N0(c),Q0(c)))},{k:"a1",l:"Giá trị đơn bình quân tháng này (đồng)",kind:"dong",ind:1,f:g2(c=>DIV(N1(c),Q1(c)))},
+   {k:"eV",l:"Tác động: số đơn thành công",f:g2(c=>`IF(AND(${Q0(c)}>0,${Q1(c)}>0),(${Q1(c)}-${Q0(c)})*${AD(R.a0,c)}*${AD(R.v0,c)},(${N1(c)}-${N0(c)})*${AD(R.v0,c)})`)},
+   {k:"eA",l:"Tác động: giá trị đơn bình quân",f:g2(c=>`IF(AND(${Q0(c)}>0,${Q1(c)}>0),${Q1(c)}*(${AD(R.a1,c)}-${AD(R.a0,c)})*${AD(R.v0,c)},0)`)},
+   ...RT.map(([k,ks,l])=>({k:"e_"+k,l,f:g2(c=>`-${N1(c)}*((${cost(c,ks)})/${N1(c)}-(${cost(c-1,ks)})/${N0(c)})`)})),
+   {k:"eF",l:"Tác động: chi phí vận hành (vận hành, kho, chi phí khác)",f:g2(c=>`-((${F_(c)})-(${F_(c-1)}))`)},{k:"eT",l:"Tác động: thu nhập khác",f:g2(c=>`${x("tnk",c)}-${x("tnk",c-1)}`)},
+   {k:"kq1",l:"KQKD THÁNG NÀY (= tháng trước + các tác động)",cls:"tot",f:g2(c=>`${AD(R.kq0,c)}+SUM(${AD(R.eV,c)}:${AD(R.eT,c)})`)},
+   {k:"chk",l:"Kiểm tra: trừ KQKD thực tế (phải bằng 0)",kind:"chk",ind:1,it:1,f:g2(c=>`ROUND(${AD(R.kq1,c)}-${x("kq",c)},0)`),gap:1}];
+  let pos=lay(sp,6,R);wr(sh,sp,{noTot:1});sh.cf.push({sq:AD(R.chk,CM(1))+":"+AD(R.chk,CM(n-1)),rules:[{f:`AND(ISNUMBER(${AD(R.chk,CM(1))}),ABS(${AD(R.chk,CM(1))})<=1)`,dxf:DX.ok},{f:`AND(ISNUMBER(${AD(R.chk,CM(1))}),ABS(${AD(R.chk,CM(1))})>1)`,dxf:DX.bad}]});
+  /* 2. mô phỏng */
+  const c0=S.ch,X=PV.X.ch[c0],m=PV.i,nm=PV.len,NN=X.nmv[m],rt=k=>NN?X[k][m]/NN:0,FF=X.vhbd[m]+X.kho[m]+X.vhcd_o[m]+X.cpk[m],r4=v=>Math.round(v*10000)/10000;
+  let r=pos;const band=t=>{sh.set(r,1,t,Y.band);for(let c=2;c<=8;c++)sh.set(r,c,null,Y.band);r++;};
+  band("2. MÔ PHỎNG: NẾU THAY ĐỔI BIẾN SỐ THÌ KQKD THẾ NÀO? (ô vàng sửa được; mặc định = "+CHN[c0]+" "+PV.lab+"/"+yr+(nm>1?", bình quân 1 tháng":"")+")");
+  const IN={};[["q","Số đơn thành công / tháng",Math.round(X.orders[m]/nm),"cnt"],["a","Giá trị đơn bình quân (đồng)",Math.round(X.orders[m]?NN/X.orders[m]*1e6:0),"dong"],["gv","Giá vốn / doanh số",r4(rt("gv")),"rate"],["fee","Phí sàn / doanh số (gồm thuế GTGT công ty)",r4(rt("phisan")),"rate"],
+   ["ads","ADS / doanh số",r4(rt("ads")),"rate"],["bhk","CP bán hàng khác / doanh số",r4(rt("bhk")),"rate"],["F","Chi phí vận hành (đồng / tháng)",Math.round(FF*1e6/nm),"amt"],["T","Thu nhập khác (đồng / tháng)",Math.round(X.tnk[m]*1e6/nm),"amt"],["tg","Mục tiêu biên KQKD",TARGET,"rate"]].forEach(([k,l,v,kd])=>{IN[k]=AB(r,2);sh.set(r,1,l,lst("",0));put(sh,r,2,v,kd,"","input");r++;});
+  r++;const OUT={},OR2={},o=(k,l,f,kd,cls)=>{OUT[k]=AB(r,2);OR2[k]=r;sh.set(r,1,l,lst(cls||"",0));put(sh,r,2,f,kd,cls||"");r++;};const vv=`(${IN.gv}+${IN.fee}+${IN.ads}+${IN.bhk})`;
+  o("N","Doanh số / tháng (= số đơn × giá trị đơn)",`${IN.q}*${IN.a}`,"amt","sec");o("v","Tỷ lệ chi phí biến đổi",vv,"rate");o("kq","KQKD / tháng",`${OUT.N}*(1-${OUT.v})-${IN.F}+${IN.T}`,"amt","tot");o("mg","Biên KQKD",DIV(OUT.kq,OUT.N),"rate");
+  o("be","Doanh số hòa vốn / tháng",`IF(1-${OUT.v}<=0,"",(${IN.F}-${IN.T})/(1-${OUT.v}))`,"amt");o("beq","≈ số đơn hòa vốn / tháng",`IF(OR(${OUT.be}="",${IN.a}=0),"",${OUT.be}/${IN.a})`,"cnt");
+  o("nt","Doanh số cần để đạt mục tiêu / tháng",`IF(1-${OUT.v}-${IN.tg}<=0,"không đạt được",(${IN.F}-${IN.T})/(1-${OUT.v}-${IN.tg}))`,"amt");o("ntq","≈ số đơn cần / tháng",`IF(OR(ISNUMBER(${OUT.nt})=FALSE,${IN.a}=0),"",${OUT.nt}/${IN.a})`,"cnt");
+  o("am","ADS tối đa để đạt mục tiêu (ở quy mô hiện tại)",`IF(${OUT.N}=0,"",${IN.ads}+${OUT.kq}/${OUT.N}-${IN.tg})`,"rate");
+  cfTarget(sh,OR2.mg,2,2,IN.tg);
+  r++;band("3. MA TRẬN BIÊN KQKD THEO ADS % VÀ SỐ ĐƠN (xanh: đạt mục tiêu · vàng: có lãi · đỏ: lỗ)");
+  const dQ=[-0.2,-0.1,0,0.1,0.2],dA=[-0.02,-0.01,0,0.01,0.02],hr=r;sh.set(hr,1,"ADS % \\ số đơn / tháng",Y.hl);dQ.forEach((d,j)=>put(sh,hr,2+j,`${IN.q}*(1${d>=0?"+":""}${d})`,"cnt","",null,{b:1,fill:C.tot,h:"center"}));r++;
+  dA.forEach(d=>{put(sh,r,1,`${IN.ads}${d>=0?"+":""}${d}`,"rate1","",null,{b:1,fill:C.tot,h:"center"});dQ.forEach((_,j)=>{const qc=AB(hr,2+j),ac="$A"+r;put(sh,r,2+j,`IF(${qc}*${IN.a}=0,"",(${qc}*${IN.a}*(1-(${vv}-${IN.ads}+${ac}))-${IN.F}+${IN.T})/(${qc}*${IN.a}))`,"rate1","");});r++;});
+  sh.cf.push({sq:AD(hr+1,2)+":"+AD(r-1,6),rules:[{f:`AND(ISNUMBER(B${hr+1}),B${hr+1}>=${IN.tg})`,dxf:DX.ok},{f:`AND(ISNUMBER(B${hr+1}),B${hr+1}>=0)`,dxf:DX.warn},{f:`ISNUMBER(B${hr+1})`,dxf:DX.bad}]});
+  r++;band("4. ĐỘ NHẠY KQKD / THÁNG (mỗi biến số thay đổi riêng lẻ, theo số ở phần 2)");["Biến số","Tác động KQKD / tháng (đồng)","Tác động biên KQKD (điểm %)"].forEach((t,j)=>sh.set(r,1+j,t,j?Y.h:Y.hl));sh.height(r,30);r++;
+  [["Phí sàn tăng 1 điểm %",`-0.01*${OUT.N}`],["ADS tăng 1 điểm %",`-0.01*${OUT.N}`],["Giá vốn tăng 1 điểm %",`-0.01*${OUT.N}`],["Số đơn +10% (giữ giá trị đơn, tỷ lệ chi phí)",`0.1*${OUT.N}*(1-${OUT.v})`],["Giá trị đơn +5% (giữ số đơn)",`0.05*${OUT.N}*(1-${OUT.v})`],["Chi phí vận hành −10%",`0.1*${IN.F}`]]
+   .forEach(([l,f])=>{sh.set(r,1,l,lst("",0));put(sh,r,2,f,"amt","");put(sh,r,3,DIV(AD(r,2),OUT.N),"pt","");r++;});
+  sh.width(2,18);for(let c=3;c<=6;c++)sh.width(c,16.5);}
+ /* ===================== KẾ HOẠCH: GIẢ ĐỊNH (ô nhập) ===================== */
+ const GR={},nmz=[];let RB=null,RT_=null;
+ if(GA){const sh=GA,PL=P.levers||{},F=P.fct||{},inp=(r,c,v,kd)=>put(sh,r,c,v,kd,"","input");sh.width(1,60);for(let c=2;c<=13;c++)sh.width(c,15);sh.width(14,16);sh.width(15,16);
+  title(sh,"GIẢ ĐỊNH KẾ HOẠCH NĂM "+PY,"Ô vàng chữ xanh = giả định, sửa được: sheet “KH "+PY+"” và “KH-TH tháng” tự tính lại. Tỷ lệ nhập dạng % (ví dụ 45%); số tiền nhập theo đồng.","Phí sàn do sàn quyết định nên không là đòn bẩy; kế hoạch chỉ cộng thêm dự báo sàn tăng phí.");
+  let r=4;const band=t=>{sh.set(r,1,t,Y.band);for(let c=2;c<=14;c++)sh.set(r,c,null,Y.band);r++;};
+  const one=(nm,l,v,kd)=>{sh.set(r,1,l,lst("",0));inp(r,2,v,kd);if(nm)B.name(nm,sh,AB(r,2),l);GR[nm||l]=r;r++;};
+  band("A. GIẢ ĐỊNH CHUNG");one("KH_Nam","Năm kế hoạch",+P.year,"int");one("KH_NMV","Doanh số sau hoàn (NMV) mục tiêu cả năm (đồng)",P.nmv!=null?Math.round(P.nmv):Math.round(P.gmv*P.nmvRate),"amt");
+  one("KH_TyLeNMV","Doanh số sau hoàn / GMV",P.nmvRate,"rate");sh.set(r,1,"GMV tương ứng (= NMV ÷ tỷ lệ NMV/GMV)",lst("",1,1));put(sh,r,2,`IF(KH_TyLeNMV=0,0,KH_NMV/KH_TyLeNMV)`,"amt","");r++;
+  one("KH_HoanHuy","Tỷ lệ đơn hoàn hủy / đơn đặt",P.cancelRate,"rate");one("KH_GiaVon","Giá vốn / doanh số sau hoàn",P.gvRate,"rate");one("KH_MucTieu","Mục tiêu biên KQKD (trước thuế)",P.target,"rate");
+  one("KH_TNDN","Thuế TNDN",P.citRate,"rate");one("KH_NTGTGT","Thuế nhà thầu nộp thay – GTGT (% doanh thu tính thuế, được khấu trừ)",F.gtgt||0,"rate");one("KH_NTTNDN","Thuế nhà thầu nộp thay – TNDN (% doanh thu tính thuế, là chi phí)",F.tndn||0,"rate");
+  one("KH_NTBat","Tính thuế nhà thầu (1 = có, 0 = không)",F.on===false?0:1,"int");one("KH_TNKhac","Thu nhập khác / tháng (đồng)",Math.round(P.otherIncome||0),"amt");one("KH_TienVe","Tỷ lệ tiền sàn của tháng về vào tháng sau",P.cashLag||0,"rate");
+  r++;band("B. GIẢ ĐỊNH THEO KÊNH");["Chỉ tiêu","Shopee","TikTok","Ngoại sàn","Tổng / ghi chú"].forEach((t,j)=>sh.set(r,1+j,t,j?Y.h:Y.hl));r++;
+  [["mix","Tỷ trọng doanh số","rate"],["aov","Giá trị đơn bình quân (đồng)","dong"],["fee","Phí sàn chưa thuế theo biểu hiện hành (% doanh số)","rate"],["feeUp","Dự báo sàn tăng phí (điểm %)","rate"],["tax","Thuế GTGT công ty / sàn khấu trừ (% doanh số)","rate"],["ads","ADS (% doanh số)","rate"]].forEach(([k,l,kd])=>{GR[k]=r;sh.set(r,1,l,lst("",0));
+   ["sp","tt","ns"].forEach((c,j)=>inp(r,2+j,+(((P[k]||{})[c])||0),kd));if(k==="mix")put(sh,r,5,`SUM(B${r}:D${r})`,"rate","");else sh.set(r,5,"",Y.txt);r++;});
+  r++;band("C. CHI PHÍ BÁN HÀNG KHÁC (% doanh số sau hoàn)");const BHN={booking:"Booking KOL/KOC",mkt:"Marketing, truyền thông",qua:"Quà tặng khách hàng",khac:"Khác (thẻ cào, hoàn tiền)"};GR.bh={};const bh0=r;
+  Object.entries(P.bh||{}).forEach(([k,v])=>{GR.bh[k]=r;sh.set(r,1,BHN[k]||k,lst("",0));inp(r,2,+v||0,"rate");r++;});const bh1=r-1;sh.set(r,1,"Cộng chi phí bán hàng khác",lst("sec",0));put(sh,r,2,bh1>=bh0?`SUM(B${bh0}:B${bh1})`:"0","rate","sec");B.name("KH_BHTong",sh,AB(r,2));r++;
+  r++;band("D. CAM KẾT ĐÒN BẨY (phương án mục tiêu) – số âm = giảm; điểm % tính trên doanh số sau hoàn");["Đòn bẩy","Mức cam kết","Phòng chịu trách nhiệm"].forEach((t,j)=>sh.set(r,1+j,t,j?Y.h:Y.hl));sh.merge(r,3,r,5);r++;
+  const LVN={gv:"DB_GiaVon",ads:"DB_ADS",bhk:"DB_BHK",aov:"DB_AOV",prod:"DB_NangSuat",staff:"DB_DinhBien",office:"DB_VanPhong"};
+  LEV.forEach(([k,l,own,t])=>{sh.set(r,1,l,lst("",0));inp(r,2,+PL[k]||0,t==="pt"?"pt":"rate");B.name(LVN[k],sh,AB(r,2),l);sh.set(r,3,own,Y.txt);sh.merge(r,3,r,5);r++;});
+  r++;band("E. MÙA VỤ – TỶ TRỌNG DOANH SỐ THEO THÁNG (tổng không cần đúng 100, công thức tự chia lại theo tỷ lệ)");sh.set(r,1,"Tháng",Y.hl);MO12.forEach((m,j)=>sh.set(r,2+j,m,Y.h));sh.set(r,14,"Tổng",Y.h);r++;
+  GR.season=r;sh.set(r,1,"Tỷ trọng (%)",lst("",0));MO12.forEach((_,j)=>inp(r,2+j,+(P.season[j]||0),"num1"));put(sh,r,14,`SUM(B${r}:M${r})`,"num1","");r++;
+  r++;band("F. NHÂN SỰ – THAM SỐ");one("KH_BH","Bảo hiểm, KPCĐ công ty đóng (% lương đóng bảo hiểm)",P.insRate,"rate");one("KH_LuongBH","Lương đóng bảo hiểm / lương gross",P.insBase,"rate");one("KH_T13","Lương tháng 13 (số tháng lương)",P.thang13,"num1");
+  one("KH_KPI","Quỹ thưởng KPI (% doanh số sau hoàn)",P.kpiRate,"rate");one("KH_Thuong","Thưởng hiệu quả (% phần KQKD vượt mục tiêu)",P.bonusShare,"rate");
+  r++;band("G. KHO");const KK=P.kho||{};one("Kho_Thue","Thuê kho / tháng (chưa VAT, đồng)",Math.round(KK.rent||0),"amt");one("Kho_DV","Dịch vụ chung thuê kho / tháng (chưa VAT, đồng)",Math.round(KK.svc||0),"amt");one("Kho_VAT","VAT thuê kho",KK.vat||0,"rate");
+  one("Kho_NS","Năng suất kho chính thức (đơn / người / ngày)",+KK.prod||0,"num1");one("Kho_Ngay","Ngày làm việc / tháng",+KK.days||0,"int");one("Kho_TVHS","Năng suất thời vụ (% so chính thức)",KK.tvEff||0,"rate");one("Kho_TVCong","Đơn giá công thời vụ (đồng / công)",Math.round(KK.tvDay||0),"amt");
+  r++;band("H. ĐỊNH BIÊN VÀ LƯƠNG (dòng “tự tính” = nhân viên kho chính thức, lấy theo công suất kho ở sheet KH "+PY+")");
+  ["Phòng / bộ phận","Vị trí","Số người (nhập)","Tự tính theo kho (1 = có)","Lương gross / tháng (đồng)","Từ tháng","Số người dùng tính (sau đòn bẩy)","Quỹ lương năm (đồng)"].forEach((t,j)=>sh.set(r,1+j,t,j?Y.h:Y.hl));sh.height(r,32);r++;
+  GR.st0=r;(P.staff||[]).forEach(s=>{sh.set(r,1,s.dept||"",Y.inTxtL);sh.set(r,2,s.pos||"",Y.inTxtL);if(s.auto)sh.set(r,3,"tự tính",Y.txtC);else inp(r,3,+s.n||0,"num1");inp(r,4,s.auto?1:0,"int");inp(r,5,Math.round(+s.sal||0),"amt");inp(r,6,+(s.from||1),"int");
+   put(sh,r,7,`IF(D${r}=1,KH_NVKho,C${r}*(1+DB_DinhBien))`,"num1","");put(sh,r,8,`G${r}*E${r}*MAX(0,13-MAX(1,F${r}))`,"amt","");r++;});GR.st1=r-1;
+  sh.set(r,1,"CỘNG",lst("tot",0));for(let c=2;c<=8;c++)sh.set(r,c,null,nst("amt","tot"));if(GR.st1>=GR.st0){put(sh,r,7,`SUM(G${GR.st0}:G${GR.st1})`,"num1","tot");put(sh,r,8,`SUM(H${GR.st0}:H${GR.st1})`,"amt","tot");}GR.stT=r;r++;
+  r++;band("I. CHI PHÍ VĂN PHÒNG, PHÚC LỢI THEO THÁNG (đồng, trước đòn bẩy)");sh.set(r,1,"Khoản chi",Y.hl);MO12.forEach((m,j)=>sh.set(r,2+j,m,Y.h));sh.set(r,14,"Cả năm",Y.h);r++;
+  GR.of0=r;(P.office||[]).forEach(o=>{sh.set(r,1,o.name||"",Y.inTxtL);MO12.forEach((_,j)=>inp(r,2+j,Math.round(+o.m[j]||0),"amt"));put(sh,r,14,`SUM(B${r}:M${r})`,"amt","");r++;});GR.of1=r-1;
+  sh.set(r,1,"CỘNG CHI PHÍ VĂN PHÒNG",lst("sec",0));for(let j=0;j<=12;j++){const c=2+j;put(sh,r,c,GR.of1>=GR.of0?`SUM(${AD(GR.of0,c)}:${AD(GR.of1,c)})`:"0","amt","sec");}GR.ofT=r;r++;
+  sh.o.freeze=[4,2];}
+ /* ===================== KẾ HOẠCH: TÍNH TOÁN (toàn bộ là công thức) ===================== */
+ const KR={},KC={};let khRows=null;
+ if(KH){const sh=KH,L=LK,cm=m=>2+m,R=KR,ga=(r,c)=>GA.xa(r,c),chs=["sp","tt","ns"],cc={sp:2,tt:3,ns:4};mwidth(sh,LK);sh.width(16,17);sh.width(17,11);
+  RB=planCalc(P);RT_=planCalc(P,null,true);const RT=RT_;
+  title(sh,"KẾ HOẠCH KINH DOANH TMĐT NĂM "+PY+" – PHƯƠNG ÁN MỤC TIÊU","Mọi số trên sheet này là công thức tính từ sheet “KH giả định” (sửa giả định ở đó). Đơn vị: đồng. Phương án mục tiêu = phương án cơ sở + các đòn bẩy giao cho từng phòng.","Cột “Ước "+yr+"” = thực tế "+mo[0]+"–"+mo[n-1]+" chia "+n+" nhân 12 (để so quy mô). Dòng kiểm tra so với số app tính lúc xuất file phải bằng 0.");
+  /* I. tham số sau đòn bẩy */
+  let r=27;const band=t=>{sh.set(r,1,t,Y.band);for(let c=2;c<=17;c++)sh.set(r,c,null,Y.band);r++;};
+  band("I. THAM SỐ SAU ĐÒN BẨY (từ sheet KH giả định)");["Tham số","Shopee","TikTok","Ngoại sàn","Cộng"].forEach((t,j)=>sh.set(r,1+j,t,j?Y.h:Y.hl));r++;
+  const prm=(k,l,f,kd,sum)=>{KC[k]=r;sh.set(r,1,l,lst("",0));chs.forEach(c=>put(sh,r,cc[c],f(c),kd,""));if(sum)put(sh,r,5,`SUM(B${r}:D${r})`,kd,"");else sh.set(r,5,null,Y.txt);r++;};
+  const gch=(k,c)=>ga(GR[k],cc[c]);
+  prm("s","Tỷ trọng doanh số (chuẩn hóa = tỷ trọng / tổng)",c=>`IF(SUM(${GA.xr(GR.mix,2,4)})=0,0,${gch("mix",c)}/SUM(${GA.xr(GR.mix,2,4)}))`,"rate",1);
+  prm("aov","Giá trị đơn bình quân sau đòn bẩy (đồng)",c=>`${gch("aov",c)}*(1+DB_AOV)`,"dong");prm("fee","Phí sàn dự kiến (% doanh số) = biểu phí + dự báo tăng",c=>`${gch("fee",c)}+${gch("feeUp",c)}`,"rate");
+  prm("tax","Thuế GTGT công ty (% doanh số)",c=>gch("tax",c),"rate");prm("ads","ADS sau đòn bẩy (% doanh số)",c=>`MAX(0,${gch("ads",c)}+DB_ADS)`,"rate");
+  const one=(k,l,f,kd)=>{KC[k]=r;sh.set(r,1,l,lst("",0));put(sh,r,2,f,kd,"");r++;};
+  one("gv","Giá vốn sau đòn bẩy (% NMV)","KH_GiaVon+DB_GiaVon","rate");one("bh","CP bán hàng khác sau đòn bẩy (% NMV)","IF(KH_BHTong>0,MAX(0,KH_BHTong+DB_BHK),KH_BHTong)","rate");
+  one("prod","Năng suất kho sau đòn bẩy (đơn / người / ngày)","Kho_NS*(1+DB_NangSuat)","num1");one("sw","Tổng tỷ trọng mùa vụ",`SUM(${GA.xr(GR.season,2,13)})`,"num1");
+  one("nkho","Nhân viên kho chính thức (người, tự tính: đơn tháng trung vị ÷ năng suất ÷ ngày, làm tròn lên)","0","cnt");B.name("KH_NVKho",sh,AB(KC.nkho,2));
+  one("cap","Công suất kho chính thức (đơn / tháng)",`$B$${KC.nkho}*$B$${KC.prod}*Kho_Ngay`,"cnt");
+  const V=(k)=>"$B$"+KC[k],VC=(k,c)=>"$"+CN(cc[c])+"$"+KC[k];
+  /* II–IV. bảng tháng */
+  r++;const r0=r;mhead(sh,r,"Chỉ tiêu (đơn vị: đồng)",LK,["Cả năm "+PY,"% NMV","Ước "+yr+"\n(TB tháng × 12)","KH so ước "+yr]);r++;
+  const est=k=>{const M2={gmv:q("gmv"),nmv:q("nmv"),orders:q("don_tc"),gv:q("gv"),fee:tk("all","net"),tax:tk("all","vat"),ads:q("ads"),bhk:q("bhk"),lbm:q("lsal"),lkho:q("luong_vd"),kq:q("kq"),tnk:q("tnk")};
+   if(k==="office")return`(${q("vhcd")(CL)}-${q("lsal")(CL)}-${q("luong_vd")(CL)}+${q("vhbd")(CL)})/${n}*12`;if(k==="mg")return DIV(q("kq")(CL),q("nmv")(CL));return M2[k]?`${M2[k](CL)}/${n}*12`:null;};
+  const E=k=>k?[rr=>{const f=est(k);return f?{f,kind:k==="mg"?"rate":k==="orders"?"cnt":"amt"}:null;},rr=>k&&k!=="mg"?{f:`IF(OR(${AD(rr,16)}="",${AD(rr,16)}=0),"",${AD(rr,14)}/${AD(rr,16)}-1)`,kind:"pt"}:null]:null;
+  const mm=c=>AD(R.mon,c),sumN=k=>`SUM(${AD(R[k],2)}:${AD(R[k],13)})`;
+  const chRows=[];chs.forEach(ch=>{const nm=CHN[ch];chRows.push(
+   {k:"nmv_"+ch,l:"Doanh số sau hoàn "+nm,ind:1,f:c=>`${AD(R.nmv,c)}*${VC("s",ch)}`},{k:"q_"+ch,l:"Đơn thành công "+nm,kind:"cnt",ind:2,f:c=>`IF(${VC("aov",ch)}=0,0,${AD(R["nmv_"+ch],c)}/${VC("aov",ch)})`},
+   {k:"fee_"+ch,l:"Phí sàn "+nm,ind:2,f:c=>`${AD(R["nmv_"+ch],c)}*${VC("fee",ch)}`},{k:"tax_"+ch,l:"Thuế GTGT công ty "+nm,ind:2,f:c=>`${AD(R["nmv_"+ch],c)}*${VC("tax",ch)}`},{k:"ads_"+ch,l:"ADS "+nm,ind:2,f:c=>`${AD(R["nmv_"+ch],c)}*${VC("ads",ch)}`});});
+  const sp=[{band:"II. DOANH SỐ VÀ ĐƠN HÀNG THEO KÊNH"},{k:"mon",l:"Tháng số",kind:"int",it:1,f:(c,i)=>i+1,tot:"none",role:"const"},
+   {k:"sea",l:"Tỷ trọng mùa vụ",kind:"rate",ind:1,f:c=>`IF(${V("sw")}=0,0,${GA.xa(GR.season,c)}/${V("sw")})`,tot:"sum"},{k:"nmv0",l:"Doanh số sau hoàn (NMV) theo mùa vụ",cls:"sec",f:c=>`KH_NMV*${AD(R.sea,c)}`},
+   {k:"gmv0",l:"GMV (= NMV ÷ tỷ lệ NMV/GMV)",f:c=>`IF(KH_TyLeNMV=0,0,${AD(R.nmv0,c)}/KH_TyLeNMV)`},...chRows,
+   {k:"q",l:"Tổng đơn thành công",kind:"cnt",cls:"sec",f:c=>chs.map(ch=>AD(R["q_"+ch],c)).join("+")},{k:"dd",l:"Số đơn đặt (= đơn thành công ÷ (1 − tỷ lệ hoàn hủy))",kind:"cnt",f:c=>`IF(KH_HoanHuy>=1,0,${AD(R.q,c)}/(1-KH_HoanHuy))`},
+   {band:"III. KHO, NHÂN SỰ, THUẾ NHÀ THẦU"},{k:"over",l:"Vượt công suất kho chính thức (đơn)",kind:"cnt",f:c=>`MAX(0,${AD(R.q,c)}-$B$${KC.cap})`},
+   {k:"cong",l:"Công thời vụ cần thuê",kind:"num1",f:c=>`IF(${V("prod")}*Kho_TVHS=0,0,${AD(R.over,c)}/(${V("prod")}*Kho_TVHS))`},{k:"tv0",l:"Lương thời vụ kho",f:c=>`${AD(R.cong,c)}*Kho_TVCong`},
+   {k:"lbm0",l:"Lương bộ máy (định biên không tự tính, từ tháng bắt đầu)",f:c=>`SUMPRODUCT((${GA.xr(GR.st0,4,4,GR.st1)}=0)*(${GA.xr(GR.st0,6,6,GR.st1)}<=${mm(c)})*${GA.xr(GR.st0,7,7,GR.st1)}*${GA.xr(GR.st0,5,5,GR.st1)})`},
+   {k:"lkho0",l:"Lương nhân viên kho chính thức",f:c=>`SUMPRODUCT((${GA.xr(GR.st0,4,4,GR.st1)}=1)*(${GA.xr(GR.st0,6,6,GR.st1)}<=${mm(c)})*${GA.xr(GR.st0,7,7,GR.st1)}*${GA.xr(GR.st0,5,5,GR.st1)})`},
+   {k:"dtnt",l:"Doanh thu tính thuế nhà thầu (phí sàn TikTok + ADS TikTok + ADS Meta) ÷ (1 − GTGT − TNDN)",f:c=>`IF(KH_NTBat=1,(${AD(R.fee_tt,c)}+${AD(R.ads_tt,c)}+${AD(R.ads_ns,c)})/(1-KH_NTGTGT-KH_NTTNDN),0)`},
+   {k:"fctv",l:"Thuế GTGT nộp thay nhà thầu (được khấu trừ lại)",ind:1,f:c=>`${AD(R.dtnt,c)}*KH_NTGTGT`},
+   {band:"IV. BÁO CÁO KẾT QUẢ KINH DOANH KẾ HOẠCH "+PY+" (dành cho Ban lãnh đạo, chủ đầu tư)"},
+   {k:"gmv",l:"GMV (doanh số đặt đơn)",cls:"sec",f:c=>AD(R.gmv0,c),ex:E("gmv")},{k:"ddp",l:"Số đơn đặt",kind:"cnt",f:c=>AD(R.dd,c)},{k:"orders",l:"Số đơn thành công",kind:"cnt",f:c=>AD(R.q,c),ex:E("orders")},
+   {k:"nmv",l:"DOANH SỐ SAU HOÀN (NMV)",cls:"sec",f:c=>AD(R.nmv0,c),ex:E("nmv")},{k:"gv",l:"Giá vốn",f:c=>`${AD(R.nmv,c)}*${V("gv")}`,ex:E("gv")},
+   {k:"fee",l:"Phí sàn (định phí + biến phí)",f:c=>chs.map(ch=>AD(R["fee_"+ch],c)).join("+"),ex:E("fee")},{k:"tax",l:"Thuế GTGT công ty phải nộp",f:c=>chs.map(ch=>AD(R["tax_"+ch],c)).join("+"),ex:E("tax")},
+   {k:"fct",l:"Thuế TNDN nhà thầu nộp thay (TikTok, Tokgistic, Meta)",f:c=>`${AD(R.dtnt,c)}*KH_NTTNDN`},
+   {k:"lng",l:"LỢI NHUẬN GỘP",cls:"sec",f:c=>`${AD(R.nmv,c)}-${AD(R.gv,c)}-${AD(R.fee,c)}-${AD(R.tax,c)}-${AD(R.fct,c)}`},
+   {k:"ads",l:"Chi phí ADS",f:c=>chs.map(ch=>AD(R["ads_"+ch],c)).join("+"),ex:E("ads")},{k:"bhk",l:"Booking, marketing, quà tặng, khác",f:c=>`${AD(R.nmv,c)}*${V("bh")}`,ex:E("bhk")},
+   {k:"ldg",l:"LÃI ĐÓNG GÓP",cls:"sec",f:c=>`${AD(R.lng,c)}-${AD(R.ads,c)}-${AD(R.bhk,c)}`},
+   {k:"lbm",l:"Lương bộ máy (kinh doanh, vận hành, HCNS, ban điều hành)",f:c=>AD(R.lbm0,c),ex:E("lbm")},{k:"lkho",l:"Lương nhân viên kho vận đơn",f:c=>AD(R.lkho0,c),ex:E("lkho")},{k:"tv",l:"Lương thời vụ kho (mùa cao điểm)",f:c=>AD(R.tv0,c)},
+   {k:"ins",l:"Bảo hiểm, KPCĐ công ty đóng",f:c=>`(${AD(R.lbm,c)}+${AD(R.lkho,c)})*KH_LuongBH*KH_BH`},{k:"l13",l:"Lương tháng 13 (trích trước)",f:c=>`(${AD(R.lbm,c)}+${AD(R.lkho,c)})*KH_T13/12`},{k:"kpi",l:"Quỹ thưởng KPI",f:c=>`${AD(R.nmv,c)}*KH_KPI`},
+   {k:"rent",l:"Thuê kho + dịch vụ chung (chưa VAT)",f:()=>"Kho_Thue+Kho_DV"},{k:"office",l:"Chi phí văn phòng, phúc lợi, khác (sau đòn bẩy)",f:c=>`${GA.xa(GR.ofT,c)}*(1+DB_VanPhong)`,ex:E("office")},{k:"tnk",l:"Thu nhập khác (lãi tiền gửi…)",f:()=>"KH_TNKhac",ex:E("tnk")},
+   {k:"pre",l:"KQKD TRƯỚC THƯỞNG HIỆU QUẢ",cls:"sec",f:c=>`${AD(R.ldg,c)}-SUM(${AD(R.lbm,c)}:${AD(R.kpi,c)})-${AD(R.rent,c)}-${AD(R.office,c)}+${AD(R.tnk,c)}`},
+   {k:"bonus",l:"Thưởng hiệu quả (phần vượt mục tiêu, ghi tháng 12)",f:c=>`IF(${mm(c)}=12,MAX(0,SUM(${AD(R.pre,2)}:${AD(R.pre,13)})-KH_MucTieu*SUM(${AD(R.nmv,2)}:${AD(R.nmv,13)}))*KH_Thuong,0)`},
+   {k:"kq",l:"KẾT QUẢ KINH DOANH (trước thuế)",cls:"tot",f:c=>`${AD(R.pre,c)}-${AD(R.bonus,c)}`,ex:E("kq")},{k:"mg",l:"Biên KQKD / NMV",kind:"rate",ind:1,f:c=>DIV(AD(R.kq,c),AD(R.nmv,c)),ex:E("mg")},
+   {k:"gap",l:"Chênh lệch so mục tiêu (KQKD − mục tiêu × NMV)",ind:1,f:c=>`${AD(R.kq,c)}-KH_MucTieu*${AD(R.nmv,c)}`},{k:"cit",l:"Thuế TNDN",f:c=>`IF(SUM(${AD(R.kq,2)}:${AD(R.kq,13)})>0,${AD(R.kq,c)}*KH_TNDN,0)`},
+   {k:"lnr",l:"LỢI NHUẬN SAU THUẾ",cls:"tot",f:c=>`${AD(R.kq,c)}-${AD(R.cit,c)}`},
+   {k:"chk",l:"Kiểm tra: KQKD công thức Excel − KQKD app tính lúc xuất (phải ≈ 0)",ind:1,it:1,f:(c,i)=>`${AD(R.kq,c)}-${i<0?Math.round(sum(RT.kq)):Math.round(RT.kq[i])}`,tot:"same",gap:1}];
+  /* V–IX */
+  const K2=P.kho||{},prv=(k,c)=>AD(R[k],c===2?2:c-1);
+  const kd=[];chs.forEach(ch=>{const nm=CHN[ch];kd.push({band:"V. CHỈ TIÊU PHÒNG KINH DOANH – "+nm.toUpperCase()},{k:"kgmv_"+ch,l:"GMV "+nm,cls:"sec",f:c=>`${AD(R.gmv,c)}*${VC("s",ch)}`},{k:"knmv_"+ch,l:"Doanh số sau hoàn "+nm,f:c=>AD(R["nmv_"+ch],c)},
+   {k:"kq_"+ch,l:"Đơn thành công",kind:"cnt",f:c=>AD(R["q_"+ch],c)},{k:"kaov_"+ch,l:"Giá trị đơn bình quân (đồng)",kind:"dong",ind:1,f:c=>DIV(AD(R["knmv_"+ch],c),AD(R["kq_"+ch],c))},
+   {k:"kads_"+ch,l:"Ngân sách ADS",f:c=>AD(R["ads_"+ch],c)},{k:"kroas_"+ch,l:"ROAS tối thiểu (doanh số / ADS)",kind:"x",ind:1,f:c=>DIV(AD(R["knmv_"+ch],c),AD(R["kads_"+ch],c))},{k:"kfee_"+ch,l:"Phí sàn dự kiến",f:c=>AD(R["fee_"+ch],c)});});
+  kd.push({band:"V. NGÂN SÁCH BÁN HÀNG KHÁC (% NMV sau đòn bẩy)"},...Object.keys(GR.bh).map(k=>({k:"bh_"+k,l:({booking:"Booking KOL/KOC",mkt:"Marketing, truyền thông",qua:"Quà tặng khách hàng",khac:"Khác (thẻ cào, hoàn tiền)"}[k]||k),f:c=>`${AD(R.nmv,c)}*${GA.xa(GR.bh[k],2)}*IF(KH_BHTong>0,${V("bh")}/KH_BHTong,1)`})));
+  const ops=[{band:"VI. CHỈ TIÊU PHÒNG VẬN HÀNH – KHO"},{k:"o_dd",l:"Đơn đặt",kind:"cnt",f:c=>AD(R.dd,c)},{k:"o_hh",l:"Đơn hoàn/hủy",kind:"cnt",f:c=>`${AD(R.dd,c)}-${AD(R.q,c)}`},{k:"o_q",l:"Đơn thành công",kind:"cnt",cls:"sec",f:c=>AD(R.q,c)},
+   {k:"o_pd",l:"Đơn thành công / ngày làm việc",kind:"num1",ind:1,f:c=>DIV(AD(R.q,c),"Kho_Ngay"),tot:"none"},{k:"o_nv",l:"Nhân viên kho chính thức (người)",kind:"cnt",f:()=>V("nkho"),tot:"none"},
+   {k:"o_cap",l:"Công suất kho chính thức (đơn / tháng)",kind:"cnt",f:()=>V("cap")},{k:"o_cong",l:"Công thời vụ cần thuê",kind:"num1",f:c=>AD(R.cong,c),tot:"sum"},
+   {k:"o_lk",l:"Lương kho chính thức",f:c=>AD(R.lkho,c)},{k:"o_tv",l:"Lương thời vụ",f:c=>AD(R.tv,c)},{k:"o_rent",l:"Thuê kho + dịch vụ (chưa VAT)",f:c=>AD(R.rent,c)},
+   {k:"o_tot",l:"TỔNG CHI PHÍ KHO (chưa bảo hiểm)",cls:"tot",f:c=>`${AD(R.o_lk,c)}+${AD(R.o_tv,c)}+${AD(R.o_rent,c)}`},{k:"o_cpo",l:"Chi phí kho / đơn thành công (đồng)",kind:"dong",ind:1,f:c=>DIV(AD(R.o_tot,c),AD(R.q,c))},{k:"o_cps",l:"Chi phí kho / doanh số",kind:"rate",ind:1,f:c=>DIV(AD(R.o_tot,c),AD(R.nmv,c))},
+   {band:"VII. QUỸ LƯƠNG THEO THÁNG"},{k:"p_lbm",l:"Lương bộ máy",f:c=>AD(R.lbm,c)},{k:"p_lk",l:"Lương kho chính thức",f:c=>AD(R.lkho,c)},{k:"p_tv",l:"Lương thời vụ",f:c=>AD(R.tv,c)},{k:"p_ins",l:"Bảo hiểm, KPCĐ",f:c=>AD(R.ins,c)},
+   {k:"p_l13",l:"Lương tháng 13 (trích trước)",f:c=>AD(R.l13,c)},{k:"p_kpi",l:"Quỹ KPI",f:c=>AD(R.kpi,c)},{k:"p_bo",l:"Thưởng hiệu quả",f:c=>AD(R.bonus,c)},{k:"pay",l:"TỔNG CHI PHÍ NHÂN SỰ",cls:"tot",f:c=>`SUM(${AD(R.p_lbm,c)}:${AD(R.p_bo,c)})`},
+   {k:"p_r",l:"Chi phí nhân sự / doanh số",kind:"rate",ind:1,f:c=>DIV(AD(R.pay,c),AD(R.nmv,c))},
+   {band:"VIII. CHI PHÍ VĂN PHÒNG, PHÚC LỢI VÀ THUÊ KHO"},...Array.from({length:Math.max(0,GR.of1-GR.of0+1)},(_,j)=>({k:"of_"+j,l:(P.office[j]||{}).name||"Khoản chi",ind:1,f:c=>`${GA.xa(GR.of0+j,c)}*(1+DB_VanPhong)`})),
+   {k:"of_t",l:"CỘNG CHI PHÍ VĂN PHÒNG",cls:"sec",f:c=>AD(R.office,c)},{k:"of_rent",l:"Thuê kho (chưa VAT)",ind:1,f:()=>"Kho_Thue"},{k:"of_svc",l:"Dịch vụ chung thuê kho (chưa VAT)",ind:1,f:()=>"Kho_DV"},
+   {k:"of_all",l:"TỔNG (chưa VAT)",cls:"tot",f:c=>`${AD(R.of_t,c)}+${AD(R.of_rent,c)}+${AD(R.of_svc,c)}`},{k:"of_vat",l:"VAT thuê kho (tiền phải trả, được khấu trừ)",ind:1,f:()=>"(Kho_Thue+Kho_DV)*Kho_VAT"},
+   {band:"IX. DÒNG TIỀN KẾ HOẠCH (giả định: một phần tiền sàn về tháng sau; lương, BH trả tháng sau; lương tháng 13 chi tháng 1; GTGT nộp tháng sau; TNDN tạm nộp theo quý)"},
+   {k:"c_in",l:"Tiền sàn trả về",cls:"sec",f:c=>`(${AD(R.nmv,c)}-${AD(R.fee,c)})*(1-KH_TienVe)+(${prv("nmv",c)}-${prv("fee",c)})*KH_TienVe`},{k:"c_gv",l:"Chi tiền hàng",ind:1,f:c=>`-${AD(R.gv,c)}`},{k:"c_ads",l:"Chi ADS",ind:1,f:c=>`-${AD(R.ads,c)}`},
+   {k:"c_bhk",l:"Chi booking, marketing, quà",ind:1,f:c=>`-${AD(R.bhk,c)}`},{k:"c_wage",l:"Chi lương, bảo hiểm, thưởng KPI",ind:1,f:c=>`-(${prv("lbm",c)}+${prv("lkho",c)}+${prv("tv",c)}+${prv("ins",c)}+${AD(R.kpi,c)}${c===2?`+SUM(${AD(R.l13,2)}:${AD(R.l13,13)})`:""})`},
+   {k:"c_rent",l:"Chi thuê kho (gồm VAT)",ind:1,f:()=>"-(Kho_Thue+Kho_DV)*(1+Kho_VAT)"},{k:"c_of",l:"Chi văn phòng, phúc lợi",ind:1,f:c=>`-${AD(R.office,c)}`},
+   {k:"c_tax",l:"Nộp thuế GTGT công ty + TNDN nhà thầu (tháng trước)",ind:1,f:c=>`-(${prv("tax",c)}+${prv("fct",c)})`},
+   {k:"c_fv",l:"GTGT nộp thay nhà thầu (chi tháng sau, khấu trừ lại kỳ kế tiếp)",ind:1,f:c=>`-(${prv("fctv",c)}-${c>=4?AD(R.fctv,c-2):"0"})`},
+   {k:"c_cit",l:"Tạm nộp thuế TNDN (tháng 4, 7, 10 nộp quý trước)",ind:1,f:c=>[5,8,11].includes(c)?`-SUM(${AD(R.cit,c-3)}:${AD(R.cit,c-1)})`:"0"},
+   {k:"c_tnk",l:"Thu nhập khác",ind:1,f:c=>AD(R.tnk,c)},{k:"c_net",l:"DÒNG TIỀN THUẦN",cls:"tot",f:c=>`SUM(${AD(R.c_in,c)}:${AD(R.c_tnk,c)})`},
+   {k:"c_cum",l:"Lũy kế dòng tiền",cls:"sec",f:c=>c===2?AD(R.c_net,2):`${AD(R.c_cum,c-1)}+${AD(R.c_net,c)}`,tot:"none",gap:1}];
+  const allS=[...sp,...kd,...ops];let pos=lay(allS,r,R);
+  /* nhân viên kho: trung vị số đơn */
+  sh.set(KC.nkho,2,{f:`IF(AND(${V("prod")}>0,Kho_Ngay>0),ROUNDUP(MEDIAN(${AD(R.q,2)}:${AD(R.q,13)})/(${V("prod")}*Kho_Ngay),0),0)`},nst("cnt","","calc"));
+  wr(sh,allS,{L:LK,nmv:R.nmv,last:17});cfTarget(sh,R.mg,2,14,"KH_MucTieu");
+  sh.cf.push({sq:AD(R.chk,2)+":"+AD(R.chk,14),rules:[{f:`ABS(B${R.chk})<=10000`,dxf:DX.ok},{f:`ABS(B${R.chk})>10000`,dxf:DX.bad}]});
+  /* X. nhân sự theo phòng */
+  r=pos;band("X. ĐỊNH BIÊN, QUỸ LƯƠNG, QUỸ THƯỞNG THEO PHÒNG (cả năm) – KPI và thưởng hiệu quả chia theo tỷ trọng quỹ lương (tham khảo)");
+  ["Phòng / bộ phận","Định biên (người)","Lương BQ / người / tháng","Quỹ lương năm","Bảo hiểm công ty","Lương tháng 13","Quỹ KPI","Thưởng hiệu quả","Tổng chi phí nhân sự"].forEach((t,j)=>sh.set(r,1+j,t,j?Y.h:Y.hl));sh.height(r,32);r++;
+  const depts=[...new Set((P.staff||[]).map(s=>s.dept||""))],dR=GA.xr(GR.st0,1,1,GR.st1),gN=GA.xr(GR.st0,7,7,GR.st1),gS=GA.xr(GR.st0,8,8,GR.st1),tS=GA.xa(GR.stT,8),d0=r;
+  depts.forEach(d=>{sh.set(r,1,d,lst("",0));put(sh,r,2,`SUMIF(${dR},A${r},${gN})`,"num1");put(sh,r,4,`SUMIF(${dR},A${r},${gS})`);put(sh,r,3,`IF(B${r}=0,"",D${r}/12/B${r})`);put(sh,r,5,`D${r}*KH_LuongBH*KH_BH`);put(sh,r,6,`D${r}*KH_T13/12`);
+   put(sh,r,7,`IF(${tS}=0,0,$N$${R.kpi}*D${r}/${tS})`);put(sh,r,8,`IF(${tS}=0,0,$N$${R.bonus}*D${r}/${tS})`);put(sh,r,9,`SUM(D${r}:H${r})`);r++;});
+  sh.set(r,1,"CỘNG",lst("tot",0));[2,4,5,6,7,8,9].forEach(c=>put(sh,r,c,`SUM(${AD(d0,c)}:${AD(r-1,c)})`,c===2?"num1":"amt","tot"));put(sh,r,3,`IF(B${r}=0,"",D${r}/12/B${r})`,"amt","tot");KR.hcT=r;r++;
+  sh.set(r,1,"Lương thời vụ kho (ngoài định biên)",lst("",0));put(sh,r,4,`$N$${R.tv}`);put(sh,r,9,`D${r}`);r++;
+  sh.set(r,1,"Kiểm tra: tổng chi phí nhân sự bảng này − dòng TỔNG CHI PHÍ NHÂN SỰ (phải = 0)",lst("",0,1));put(sh,r,9,`I${r-2}+I${r-1}-$N$${R.pay}`,"chk");KR.hcChk=r;r++;
+  /* XI. cơ sở → mục tiêu */
+  r++;band("XI. TỪ PHƯƠNG ÁN CƠ SỞ ĐẾN MỤC TIÊU – TÁC ĐỘNG CỘNG DỒN CỦA TỪNG ĐÒN BẨY (số app tính lúc xuất; đổi giả định thì xuất lại file)");
+  ["Đòn bẩy","Mức cam kết","Phòng chịu trách nhiệm","Tác động KQKD cả năm","KQKD sau đòn bẩy","Biên KQKD sau đòn bẩy"].forEach((t,j)=>sh.set(r,1+j,t,j?Y.h:Y.hl));sh.height(r,30);r++;
+  const bK=sum(RB.kq),bN=sum(RB.nmv),c0=r;sh.set(r,1,"Phương án cơ sở (cơ cấu chi phí hiện tại)",lst("sec",0));sh.set(r,2,"",nst("amt","sec"));sh.set(r,3,"",Y.txt);put(sh,r,4,null,"amt","sec");put(sh,r,5,Math.round(bK),"amt","sec");put(sh,r,6,bN?bK/bN:0,"rate","sec","const");r++;
+  let acc=[],prevK=bK;const PL=P.levers||{};LEV.forEach(([k,l,own,t])=>{acc.push(k);const R2=planCalc(P,null,acc.slice()),k2=sum(R2.kq),n2=sum(R2.nmv);sh.set(r,1,l,lst("",1));put(sh,r,2,+PL[k]||0,t==="pt"?"pt":"rate","","const");sh.set(r,3,own,Y.txt);
+   put(sh,r,4,Math.round(k2-prevK),"amt","","const");put(sh,r,5,`${AD(r-1,5)}+${AD(r,4)}`,"amt","");put(sh,r,6,n2?k2/n2:0,"rate","","const");prevK=k2;r++;});
+  sh.set(r,1,"PHƯƠNG ÁN MỤC TIÊU (công thức sheet này)",lst("tot",0));sh.set(r,2,"",nst("amt","tot"));sh.set(r,3,"",nst("amt","tot"));put(sh,r,4,`SUM(${AD(c0+1,4)}:${AD(r-1,4)})`,"amt","tot");put(sh,r,5,`$N$${R.kq}`,"amt","tot");put(sh,r,6,`$N$${R.mg}`,"rate","tot");r++;
+  sh.set(r,1,"Kiểm tra: cơ sở + các tác động − KQKD mục tiêu (phải ≈ 0)",lst("",0,1));put(sh,r,5,`${AD(c0,5)}+${AD(r-1,4)}-${AD(r-1,5)}`,"chk");KR.levChk=r;r++;
+  /* XII. độ nhạy */
+  r++;band("XII. ĐẠT BIÊN "+fpct(P.target,0)+": CẦN GÌ? – MỖI DÒNG THAY ĐỔI MỘT GIẢ ĐỊNH (số app tính lúc xuất)");["Thay đổi","Tác động KQKD cả năm (đồng)","Biên KQKD mới","Thay đổi biên (điểm %)"].forEach((t,j)=>sh.set(r,1+j,t,j?Y.h:Y.hl));sh.height(r,30);r++;
+  const yK=sum(RT.kq),yN=sum(RT.nmv),mg0=yN?yK/yN:0;
+  const LV2=[["Giá vốn giảm 1 điểm %",q2=>{q2.gvRate-=0.01;}],["ADS giảm 1 điểm % (mọi kênh)",q2=>{["sp","tt","ns"].forEach(c=>q2.ads[c]-=0.01);}],["Rủi ro: sàn tăng phí thêm 1 điểm % (Shopee, TikTok)",q2=>{q2.fee.sp+=0.01;q2.fee.tt+=0.01;}],["Rủi ro: nhà cung cấp tự thu thuế (16,4% giá) thay vì nộp thay",q2=>{q2.fct.tndn=0.164/(1+0.164)*0.85;q2.fct.gtgt=0;}],
+   ["Giá trị đơn bình quân +10%",q2=>{["sp","tt","ns"].forEach(c=>q2.aov[c]*=1.1);}],["Năng suất kho +20%",q2=>{q2.kho.prod*=1.2;}],["Tỷ lệ NMV/GMV +1 điểm (giảm hoàn hủy)",q2=>{q2.nmvRate+=0.01;}],["Doanh số (NMV) +10%",q2=>{q2.nmv*=1.1;}],
+   ["Định biên bộ máy −10%",q2=>{q2.staff.forEach(s=>{if(!s.auto)s.n*=0.9;});}],["Chi phí văn phòng, phúc lợi −10%",q2=>{q2.office.forEach(o=>{o.m=o.m.map(x=>x*0.9);});}],["Rủi ro: thuế GTGT thực nộp cao hơn 1 điểm %",q2=>{q2.tax.sp+=0.01;q2.tax.tt+=0.01;q2.tax.ns+=0.01;}],["Rủi ro: doanh số chỉ đạt 85%",q2=>{q2.nmv*=0.85;}],["Rủi ro: các phòng không thực hiện cam kết (về phương án cơ sở)",q2=>{q2.levers={};}]];
+  LV2.forEach(([l,f])=>{let R2;try{R2=planCalc(P,f,true);}catch(e){return;}const k2=sum(R2.kq),n2=sum(R2.nmv);sh.set(r,1,l,lst("",0));put(sh,r,2,Math.round(k2-yK),"amt","","const");put(sh,r,3,n2?k2/n2:0,"rate","","const");put(sh,r,4,n2?k2/n2-mg0:0,"pt","","const");r++;});
+  /* KPI đầu trang và biểu đồ */
+  const kp=5;let kr=kp;sh.set(kr,1,"CHỈ TIÊU CHÍNH KẾ HOẠCH "+PY,Y.band);for(let c=2;c<=3;c++)sh.set(kr,c,null,Y.band);kr++;
+  const kpi=(l,f,kd,note)=>{sh.set(kr,1,l,lst("",0));put(sh,kr,2,f,kd||"amt","");sh.set(kr,3,note||"",Y.txt);kr++;};
+  kpi("Doanh số sau hoàn (NMV)",`$N$${R.nmv}`,"amt","chủ đầu tư giao");kpi("GMV cần đạt",`$N$${R.gmv}`,"amt","= NMV ÷ tỷ lệ NMV/GMV");kpi("Đơn thành công",`$N$${R.orders}`,"cnt","");kpi("Đơn thành công / ngày làm việc",`$N$${R.orders}/12/Kho_Ngay`,"num1","");
+  kpi("KẾT QUẢ KINH DOANH trước thuế",`$N$${R.kq}`,"amt","");kpi("Biên KQKD",`$N$${R.mg}`,"rate","mục tiêu ở sheet KH giả định");kpi("Vượt (+) / thiếu (−) so mục tiêu",`$N$${R.gap}`,"amt","");kpi("Lợi nhuận sau thuế",`$N$${R.lnr}`,"amt","");
+  kpi("Định biên (người)",GA.xa(GR.stT,7),"num1","gồm nhân viên kho tự tính");kpi("Tổng quỹ lương, bảo hiểm, thưởng",`$N$${R.pay}`,"amt","");kpi("Chi phí nhân sự / NMV",DIV(`$N$${R.pay}`,`$N$${R.nmv}`),"rate","");
+  kpi("Chi phí kho / đơn (lương kho + thời vụ + thuê kho + BH kho)",`IF($N$${R.orders}=0,"",($N$${R.lkho}+$N$${R.tv}+$N$${R.rent}+IF($N$${R.lbm}+$N$${R.lkho}=0,0,$N$${R.ins}*$N$${R.lkho}/($N$${R.lbm}+$N$${R.lkho})))/$N$${R.orders})`,"dong","");
+  KR.kpi0=kp;sh.ch.push({at:[kp,5,kp+21,14],title:"NMV kế hoạch "+PY+" theo kênh và biên KQKD",cat:{sh,r:r0,c1:2,c2:13},stacked:1,yFmt:"#,##0",y2Fmt:"0.0%",
+   bars:chs.map(ch=>({name:CHN[ch],sh,r:R["nmv_"+ch],color:ch==="sp"?"EE4D2D":ch==="tt"?"A5A5A5":"5B9BD5"})),lines:[{name:"Biên KQKD",sh,r:R.mg,color:"1F3864",labels:1,fmt:"0.0%"}]});
+  khRows=R;}
+ /* ===================== KẾ HOẠCH – THỰC HIỆN THÁNG ===================== */
+ if(KT){const sh=KT,R=KR,same=+yr===+PY,khM=S.khM!=null?S.khM:(same?Math.max(0,n-1):0);sh.width(1,52);for(let c=2;c<=12;c++)sh.width(c,15.5);sh.width(13,22);
+  title(sh,"BÁO CÁO KẾ HOẠCH – THỰC HIỆN THEO THÁNG NĂM "+PY,"Chọn tháng ở ô vàng (1–12). Kế hoạch = phương án mục tiêu (sheet KH "+PY+"); thực hiện lấy từ sheet KQKD, Theo kênh. Ba cột đầu là số thực hiện 3 tháng gần nhất để đối chiếu nhịp thực tế.",same?"":"Chưa có số thực hiện năm "+PY+": cột Thực hiện, lũy kế trống; ba cột đầu là 3 tháng gần nhất của năm "+yr+".");
+  sh.set(4,1,"Tháng báo cáo (1–12)",Y.lab);put(sh,4,2,khM+1,"int","","input",{h:"center",b:1});sh.dv.push({type:"whole",op:"between",f1:"1",f2:"12",sq:"B4",prompt:"Nhập số tháng 1–12",err:"Nhập số tháng từ 1 đến 12."});B.name("KT_Thang",sh,"$B$4");
+  sh.set(5,1,"Năm kế hoạch trùng năm số liệu thực tế (1 = có)",Y.statL);put(sh,5,2,"IF(NamTT=KH_Nam,1,0)","int","",null,{h:"center"});B.name("KT_Cung",sh,"$B$5");
+  sh.set(6,1,"Tháng đầu của 3 cột đối chiếu (số tháng thực tế)",Y.statL);put(sh,6,2,`IF(KT_Cung=1,KT_Thang-3,${n}-2)`,"int","",null,{h:"center"});B.name("KT_Dau",sh,"$B$6");
+  /* bảng phụ */
+  const M={kh:{},th:{}},defs=[
+   {h:"A. Chỉ số kinh doanh – phòng Kinh doanh"},
+   {k:"gmv",l:"GMV (doanh số đặt đơn)",kh:c=>KH.x(R.gmv,c),th:q("gmv"),own:"Kinh doanh"},{k:"nmv",l:"Doanh số sau hoàn (NMV) – tổng",kh:c=>KH.x(R.nmv,c),th:q("nmv"),own:"Kinh doanh",cls:"sec"},
+   ...["sp","tt","ns"].map(ch=>({k:"n_"+ch,l:"  NMV "+CHN[ch],kh:c=>KH.x(R["nmv_"+ch],c),th:tk(ch,"nmv"),own:ch==="ns"?"Sale ngoại sàn":"Dự án "+CHN[ch]})),
+   {k:"q",l:"Đơn thành công",kh:c=>KH.x(R.q,c),th:q("don_tc"),t:"cnt",own:"Kinh doanh"},{k:"aov",l:"Giá trị đơn bình quân (đồng)",kh:c=>DIV(KH.x(R.nmv,c),KH.x(R.q,c)),th:c=>DIV(q("nmv")(c),q("don_tc")(c)),t:"dong",own:"Kinh doanh"},
+   {k:"nhs",l:"NMV / nhân sự (hiệu suất bộ máy)",kh:c=>DIV(KH.x(R.nmv,c),GA.xa(GR.stT,7)),th:null,own:"Kinh doanh / HCNS"},
+   {k:"ads",l:"Chi phí ADS",kh:c=>KH.x(R.ads,c),th:q("ads"),good:"down",own:"Kinh doanh – ADS"},{k:"adsr",l:"ADS / NMV",kh:c=>DIV(KH.x(R.ads,c),KH.x(R.nmv,c)),th:c=>DIV(q("ads")(c),q("nmv")(c)),t:"rate",good:"down",own:"Kinh doanh – ADS"},
+   {k:"roas",l:"ROAS",kh:c=>DIV(KH.x(R.nmv,c),KH.x(R.ads,c)),th:c=>DIV(q("nmv")(c),q("ads")(c)),t:"x",own:"Kinh doanh – ADS"},{k:"bhk",l:"Booking, marketing, quà tặng",kh:c=>KH.x(R.bhk,c),th:q("bhk"),good:"down",own:"Booking / Marketing"},
+   {h:"B. Vận hành – sàn, kho, CSKH"},
+   {k:"ps",l:"Phí sàn + thuế (GTGT công ty, nhà thầu)",kh:c=>`${KH.x(R.fee,c)}+${KH.x(R.tax,c)}+${KH.x(R.fct,c)}`,th:c=>`${q("dinh")(c)}+${q("bien")(c)}`,good:"down",own:"Vận hành sàn"},
+   {k:"psr",l:"Phí sàn + thuế / NMV",kh:c=>DIV(`${KH.x(R.fee,c)}+${KH.x(R.tax,c)}+${KH.x(R.fct,c)}`,KH.x(R.nmv,c)),th:c=>DIV(`${q("dinh")(c)}+${q("bien")(c)}`,q("nmv")(c)),t:"rate",good:"down",own:"Vận hành sàn"},
+   {k:"kho",l:"Chi phí kho (lương kho, thời vụ, thuê kho)",kh:c=>`${KH.x(R.lkho,c)}+${KH.x(R.tv,c)}+${KH.x(R.rent,c)}`,th:q("luong_vd"),good:"down",own:"Vận hành – kho"},
+   {k:"khoq",l:"Chi phí kho / đơn (đồng)",kh:c=>DIV(`${KH.x(R.lkho,c)}+${KH.x(R.tv,c)}+${KH.x(R.rent,c)}`,KH.x(R.q,c)),th:c=>DIV(q("luong_vd")(c),q("don_tc")(c)),t:"dong",good:"down",own:"Vận hành – kho"},
+   {k:"hh",l:"Tỷ lệ hoàn/hủy theo đơn",kh:()=>"KH_HoanHuy",th:c=>DIV(q("don_hh")(c),q("don_dat")(c)),t:"rate",good:"down",own:"Vận hành / CSKH"},
+   {h:"C. Nhân sự – hành chính"},
+   {k:"hc",l:"Định biên (người)",kh:()=>GA.xa(GR.stT,7),th:null,t:"cnt",own:"HCNS"},
+   {k:"ns",l:"Chi phí nhân sự bộ máy (lương, BH, thưởng)",kh:c=>`${KH.x(R.lbm,c)}+${KH.x(R.ins,c)}+${KH.x(R.l13,c)}+${KH.x(R.kpi,c)}+${KH.x(R.bonus,c)}`,th:c=>`${q("lsal")(c)}+${q("kpi")(c)}`,good:"down",own:"HCNS"},
+   {k:"nsr",l:"Chi phí nhân sự bộ máy / NMV",kh:c=>DIV(`${KH.x(R.lbm,c)}+${KH.x(R.ins,c)}+${KH.x(R.l13,c)}+${KH.x(R.kpi,c)}+${KH.x(R.bonus,c)}`,KH.x(R.nmv,c)),th:c=>DIV(`${q("lsal")(c)}+${q("kpi")(c)}`,q("nmv")(c)),t:"rate",good:"down",own:"HCNS"},
+   {k:"vp",l:"Văn phòng, phúc lợi, CCDC, khác",kh:c=>KH.x(R.office,c),th:c=>`${q("vhcd")(c)}-${q("lsal")(c)}-${q("luong_vd")(c)}+${q("vhbd")(c)}-${q("kpi")(c)}`,good:"down",own:"HCNS"},
+   {h:"D. Kết quả – tài chính kế toán"},
+   {k:"gv",l:"Giá vốn",kh:c=>KH.x(R.gv,c),th:q("gv"),good:"down",own:"Thu mua / Kế toán"},{k:"gvr",l:"Giá vốn / NMV",kh:c=>DIV(KH.x(R.gv,c),KH.x(R.nmv,c)),th:c=>DIV(q("gv")(c),q("nmv")(c)),t:"rate",good:"down",own:"Thu mua"},
+   {k:"ldg",l:"Lãi đóng góp",kh:c=>`${KH.x(R.ldg,c)}`,th:q("ldg"),cls:"sec",own:"Kế toán"},{k:"kq",l:"KẾT QUẢ KINH DOANH (trước thuế)",kh:c=>KH.x(R.kq,c),th:q("kq"),cls:"tot",own:"Kế toán"},
+   {k:"mg",l:"Biên KQKD / NMV",kh:c=>DIV(KH.x(R.kq,c),KH.x(R.nmv,c)),th:c=>DIV(q("kq")(c),q("nmv")(c)),t:"rate",own:"Kế toán"},
+   {k:"gap",l:"Chênh lệch so mục tiêu",kh:c=>`${KH.x(R.kq,c)}-KH_MucTieu*${KH.x(R.nmv,c)}`,th:c=>`${q("kq")(c)}-KH_MucTieu*${q("nmv")(c)}`,own:"Kế toán"}];
+  const rows=defs.filter(d=>!d.h),top=9,hr=8,nr=defs.length;
+  let rk=top+nr+2;const kh0=rk;sh.set(rk,1,"BẢNG PHỤ 1 – KẾ HOẠCH THEO THÁNG (liên kết sheet KH "+PY+")",Y.band);for(let c=2;c<=13;c++)sh.set(rk,c,null,Y.band);rk++;
+  sh.set(rk,1,"Chỉ tiêu",Y.hl);MO12.forEach((m,j)=>sh.set(rk,2+j,m,Y.h));sh.set(rk,14,"",Y.h);const khHead=rk;rk++;
+  sh.set(rk,1,"Tháng số",Y.statL);MO12.forEach((_,j)=>put(sh,rk,2+j,j+1,"int","","const",{h:"center"}));const khIdx=rk;rk++;
+  rows.forEach(d=>{M.kh[d.k]=rk;sh.set(rk,1,d.l.trim(),lst("",0));for(let j=0;j<12;j++)put(sh,rk,2+j,d.kh(2+j),d.t||"amt","");rk++;});
+  rk++;sh.set(rk,1,"BẢNG PHỤ 2 – THỰC HIỆN THEO THÁNG NĂM "+yr+" (liên kết sheet KQKD, Theo kênh)",Y.band);for(let c=2;c<=13;c++)sh.set(rk,c,null,Y.band);rk++;
+  sh.set(rk,1,"Chỉ tiêu",Y.hl);mo.forEach((m,i)=>sh.set(rk,CM(i),m+"/"+yr,Y.h));rk++;
+  rows.forEach(d=>{M.th[d.k]=rk;sh.set(rk,1,d.l.trim(),lst("",0));for(let i=0;i<n;i++)put(sh,rk,CM(i),d.th?d.th(CM(i)):null,d.t||"amt","");rk++;});
+  /* bảng chính */
+  const hd=["Chỉ tiêu",...[0,1,2].map(j=>({f:`IF(OR(KT_Dau+${j}<1,KT_Dau+${j}>${n}),"–","T"&(KT_Dau+${j})&"/"&NamTT)`})),"Bình quân\n3 tháng",{f:`"Kế hoạch T"&KT_Thang`},{f:`"Thực hiện T"&KT_Thang`},"Chênh lệch\n(TH − KH)","% thực hiện","KH lũy kế","TH lũy kế","% TH lũy kế","Phụ trách số liệu"];
+  hd.forEach((t,j)=>sh.set(hr,1+j,t,j?Y.h:Y.hl));sh.height(hr,32);
+  let r=top;defs.forEach(d=>{if(d.h){sh.set(r,1,d.h,Y.band);for(let c=2;c<=13;c++)sh.set(r,c,null,Y.band);r++;return;}
+   const t=d.t||"amt",isR=t!=="amt"&&t!=="cnt",cls=d.cls||"";
+   const KHr=`${AB(M.kh[d.k],2)}:${AB(M.kh[d.k],13)}`,THr=`${AB(M.th[d.k],CM(0))}:${AB(M.th[d.k],CM(n-1))}`;sh.set(r,1,d.l,lst(cls,d.l.startsWith("  ")?1:0));
+   [0,1,2].forEach(j=>put(sh,r,2+j,d.th?`IF(OR(KT_Dau+${j}<1,KT_Dau+${j}>${n}),"",INDEX(${THr},KT_Dau+${j}))`:`""`,t,cls));
+   put(sh,r,5,`IFERROR(AVERAGE(B${r}:D${r}),"")`,t,cls);put(sh,r,6,`INDEX(${KHr},KT_Thang)`,t,cls,null,{b:1});
+   put(sh,r,7,d.th?`IF(AND(KT_Cung=1,KT_Thang<=${n}),INDEX(${THr},KT_Thang),"")`:`""`,t,cls);
+   put(sh,r,8,`IF(OR(G${r}="",F${r}=""),"",G${r}-F${r})`,isR?(t==="rate"?"pt":t==="x"?"num2":"dong"):t,cls);
+   put(sh,r,9,isR?`""`:`IF(OR(G${r}="",F${r}=0),"",G${r}/F${r})`,"rate1",cls);
+   put(sh,r,10,isR?`""`:`SUMPRODUCT((${AB(khIdx,2)}:${AB(khIdx,13)}<=KT_Thang)*${KHr})`,t,cls);
+   put(sh,r,11,isR||!d.th?`""`:`IF(KT_Cung=1,SUMPRODUCT((ThangSo<=KT_Thang)*${THr}),"")`,t,cls);
+   put(sh,r,12,isR?`""`:`IF(OR(K${r}="",J${r}=0),"",K${r}/J${r})`,"rate1",cls);sh.set(r,13,d.own||"",Y.txt);
+   const dn=d.good==="down";[9,12].forEach(c=>{const a=AD(r,c);sh.cf.push({sq:a,rules:[{f:`AND(ISNUMBER(${a}),${dn?a+"<=1.0001":a+">=0.9999"})`,dxf:DX.ok,stop:1},{f:`AND(ISNUMBER(${a}),${dn?a+">1.05":a+"<0.95"})`,dxf:DX.bad,stop:1},{f:`ISNUMBER(${a})`,dxf:DX.warn}]});});r++;});
+  sh.o.freeze=[top,2];sh.o.titles=["$A:$A","$"+hr+":$"+hr];}
+ /* ===================== THEO SHOP ===================== */
+ if(SHP){const sh=SHP;let r=4,maxC=2;sh.width(1,52);
+  title(sh,"PHÍ SÀN VÀ TIỀN CHỜ QUYẾT TOÁN THEO TỪNG SHOP","Đơn vị: đồng · số liệu shop lấy từ sheet chi tiết (chữ xanh dương); cột “Cộng” và các tỷ lệ là công thức.");
+  shopKeys.forEach(i=>{const sp0=D.shops[String(i)],nm=sp0.names,ns=nm.length,cT=2+ns,g=(k,j)=>sp0[k]&&sp0[k][j]!=null&&isFinite(sp0[k][j])?+sp0[k][j]:null;maxC=Math.max(maxC,cT+1);
+   sh.set(r,1,"THÁNG "+mo[i]+"/"+yr,Y.band);for(let c=2;c<=cT;c++)sh.set(r,c,null,Y.band);r++;sh.set(r,1,"Khoản mục",Y.hl);nm.forEach((x,j)=>sh.set(r,2+j,x+(sp0.ch&&sp0.ch[j]?"\n("+CHN[sp0.ch[j]]+")":""),Y.h));sh.set(r,cT,"Cộng",Y.h);sh.height(r,46);r++;
+   const R={},row=(k,l,vals,kind,cls,tot)=>{R[k]=r;sh.set(r,1,l,lst(cls||"",cls?0:1));for(let j=0;j<ns;j++)put(sh,r,2+j,vals(j),kind||"amt",cls||"");put(sh,r,cT,tot===false?null:tot||`SUM(${AD(r,2)}:${AD(r,cT-1)})`,kind||"amt",cls||"");r++;};
+   const v=k=>j=>{const x=g(k,j);return x==null?null:Math.round(x*1e6);};
+   row("nmv","Doanh số sau hoàn",v("nmv"),"amt","sec");row("orders","Đơn thành công",j=>g("orders",j),"cnt");row("aov","Giá trị đơn bình quân (đồng)",j=>DIV(AD(R.nmv,2+j),AD(R.orders,2+j)),"dong","",DIV(AD(R.nmv,cT),AD(R.orders,cT)));
+   const ks=["tt","cd","vc","ht","ps","thue"];ks.forEach(k=>row(k,CH_LBL[k],v(k)));row("dinh","ĐỊNH PHÍ SÀN",j=>`SUM(${AD(R.tt,2+j)}:${AD(R.thue,2+j)})`,"amt","sec");
+   ["hh","gcd","ship"].forEach(k=>row(k,CH_LBL[k],v(k)));row("bien","BIẾN PHÍ SÀN",j=>`${AD(R.hh,2+j)}+${AD(R.gcd,2+j)}+${AD(R.ship,2+j)}`,"amt","sec");
+   if(sp0.gcd_thuc)row("gcdt","Gói chiến dịch theo quyết toán thực tế (tham khảo)",v("gcd_thuc"));
+   row("ps","TỔNG PHÍ SÀN (chưa ADS)",j=>`${AD(R.dinh,2+j)}+${AD(R.bien,2+j)}`,"amt","tot");row("ads",CH_LBL.ads,v("ads"));row("psa","TỔNG PHÍ SÀN + ADS",j=>`${AD(R.ps,2+j)}+${AD(R.ads,2+j)}`,"amt","tot");
+   const rr=(k,l,cls)=>row("r_"+k,l,j=>DIV(AD(R[k],2+j),AD(R.nmv,2+j)),"rate",cls,DIV(AD(R[k],cT),AD(R.nmv,cT)));
+   rr("dinh","Định phí sàn / doanh số");rr("bien","Biến phí sàn / doanh số");rr("ps","Tổng phí sàn / doanh số","sec");rr("ads","ADS / doanh số");rr("psa","Tổng phí sàn + ADS / doanh số","sec");
+   if(sp0.ds_cho){row("qt","Doanh số đã quyết toán",v("ds_qt"));row("cho","Doanh số chờ quyết toán",v("ds_cho"),"amt","sec");row("rcho","% chờ quyết toán",j=>DIV(AD(R.cho,2+j),AD(R.nmv,2+j)),"rate","",DIV(AD(R.cho,cT),AD(R.nmv,cT)));
+    row("dcho","Đơn chờ quyết toán",j=>g("don_cho",j),"cnt");row("ptt","Phí tạm tính phần chờ quyết toán",v("phi_tt"));row("ve","TIỀN CHỜ VỀ (= DS chờ − phí tạm tính)",j=>`${AD(R.cho,2+j)}-${AD(R.ptt,2+j)}`,"amt","tot");}
+   r++;});for(let c=2;c<=maxC;c++)sh.width(c,17);}
+ /* ===================== KIỂM TRA ===================== */
+ const CKS={a:[],b:[]};
+ if(CK){const sh=CK;mwidth(sh);sh.width(CL,12);sh.width(CP,12);sh.width(CB,48);
+  title(sh,"KIỂM TRA SỐ LIỆU VÀ CÔNG THỨC","Mỗi ô là chênh lệch (đồng hoặc số đơn). ✓ = bằng 0; nền xanh = trong ngưỡng; nền đỏ = vượt ngưỡng. Cột “Số tháng lệch” đếm ô vượt ngưỡng.","Phần A soát số liệu nguồn (lỗi ở file BCKD cần kế toán xử lý). Phần B, C soát công thức của chính file này: phải luôn khớp.");
+  mhead(sh,4,"Phép kiểm tra",LA,["Số tháng\nlệch","Ngưỡng\n(±)","Ghi chú"],true);
+  let r=6;const band=t=>{sh.set(r,1,t,Y.band);for(let c=2;c<=CB;c++)sh.set(r,c,null,Y.band);r++;};
+  const test=(grp,l,f,tol,kind,note)=>{sh.set(r,1,l,lst("",0));for(let i=0;i<n;i++){const v=f(CM(i),i);put(sh,r,CM(i),v==null?`""`:v.startsWith("IF(")?v:`ROUND(${v},0)`,"chk","");}
+   const rg=`${AD(r,CM(0))}:${AD(r,CM(n-1))}`;put(sh,r,CL,`COUNTIF(${rg},">"&${AD(r,CP)})+COUNTIF(${rg},"<"&-${AD(r,CP)})`,"int","",null,{h:"center",b:1});put(sh,r,CP,tol,kind==="cnt"?"num1":"amt","","const");sh.set(r,CB,note||"",Y.note);
+   sh.cf.push({sq:rg,rules:[{f:`AND(ISNUMBER(${AD(r,CM(0))}),ABS(${AD(r,CM(0))})>$${CN(CP)}${r})`,dxf:DX.bad},{f:`ISNUMBER(${AD(r,CM(0))})`,dxf:DX.ok}]});
+   sh.cf.push({sq:AD(r,CL),rules:[{f:`${AD(r,CL)}>0`,dxf:DX.bad},{f:`${AD(r,CL)}=0`,dxf:DX.ok}]});CKS[grp].push(r);r++;};
+  const s=(ch,k)=>c=>SRC.x(SR[ch][k],c);
+  band("A. SỐ LIỆU NGUỒN (file BCKD)");
+  test("a","Đơn đặt − hoàn/hủy − thành công",c=>`${sT("don_dat")(c)}-${sT("don_hh")(c)}-${sT("don_tc")(c)}`,0.5,"cnt");
+  test("a","GMV − hủy − đã xuất kho",c=>`${sT("gmv")(c)}-${sT("ds_huy")(c)}-${sT("ds_xk")(c)}`,10000,"amt","Phễu doanh số phải cộng khớp; lệch = định nghĩa các bước chưa thống nhất");
+  test("a","Đã xuất kho − hoàn − doanh số sau hoàn",c=>`${sT("ds_xk")(c)}-${sT("ds_hoan")(c)}-${sT("nmv")(c)}`,10000);
+  test("a","Doanh số − giá vốn (dòng sheet) − chênh lệch mua bán",c=>`IF(${sT("clmb")(c)}=0,"",ROUND(${sT("nmv")(c)}-${sT("gv")(c)}-${sT("clmb")(c)},0))`,10000,"amt","Lệch = dòng giá vốn trên tổng hợp khác giá vốn dùng tính chênh lệch");
+  test("a","KQKD tính lại − KQKD theo sổ",c=>`${q("kq")(c)}-${q("kq_s")(c)}`,10000);
+  test("a","KQKD theo sổ − thuế − lợi nhuận ròng theo sổ",c=>`${sT("kqkd")(c)}-${sT("tndn")(c)}-${sT("lnr")(c)}`,10000);
+  test("a","Vận hành biến động: tổng − chi tiết (âm = chi tiết lớn hơn tổng)",c=>`MIN(0,${q("kpi")(c)})`,10000);
+  test("a","Ngoại sàn: doanh số còn lại (âm = Shopee + TikTok lớn hơn tổng)",c=>`MIN(0,${PS.x(PB.ns.nmv,c)})`,10000);
+  test("a","Ngoại sàn: số đơn còn lại (âm = lệch)",c=>`MIN(0,${PS.x(PB.ns.orders,c)})`,0.5,"cnt");
+  test("a","Ngoại sàn: phí sàn còn lại ngoài thuế GTGT, ADS (≈ 0)",c=>`${PS.x(PB.ns.dinh,c)}-${PS.x(PB.ns.vatcty,c)}+${PS.x(PB.ns.bien,c)}`,2000000,"amt","Ngoại sàn không có phí sàn; lệch = tổng hợp và chi tiết sàn chưa khớp");
+  test("a","Có số liệu Shopee/TikTok của tháng (−1 = thiếu)",c=>`IF(OR(${s("sp","nmv")(c)}<>0,${s("tt","nmv")(c)}<>0),0,-1)`,0.5,"cnt");
+  if(SR.kqct)test("a","KQKD báo cáo tháng (Tn-Chi tiết) − tổng hợp chốt",c=>`IF(ISNUMBER(${SRC.x(SR.kqct,c)}),ROUND(${SRC.x(SR.kqct,c)}-${sT("kqkd")(c)},0),"")`,1000000,"amt","Điều chỉnh khi chốt số: cần biên bản và gửi lại BLĐ");
+  sh.set(r,1,"Thuế TNDN/TNCN ÷ KQKD theo sổ (tham khảo, chuẩn 20%)",lst("",0,1));for(let i=0;i<n;i++)put(sh,r,CM(i),DIV(sT("tndn")(CM(i)),sT("kqkd")(CM(i))),"rate1","");sh.set(r,CB,"Vàng = khác 20% quá 0,5 điểm",Y.note);
+  sh.cf.push({sq:`${AD(r,CM(0))}:${AD(r,CM(n-1))}`,rules:[{f:`AND(ISNUMBER(${AD(r,CM(0))}),ABS(${AD(r,CM(0))}-0.2)>0.005)`,dxf:DX.warn}]});r++;
+  r++;band("B. CÔNG THỨC – KHỚP GIỮA CÁC SHEET (phải bằng 0)");
+  const tie=(l,a,b,tol)=>test("b",l,c=>`${a(c)}-(${b(c)})`,tol||1);
+  tie("Theo kênh (cộng 3 kênh) − KQKD: doanh số",tk("all","nmv"),q("nmv"));tie("Theo kênh − KQKD: đơn thành công",tk("all","orders"),q("don_tc"));tie("Theo kênh − KQKD: giá vốn",tk("all","gv"),q("gv"));
+  tie("Theo kênh − KQKD: phí sàn (định + biến)",c=>`${tk("all","net")(c)}+${tk("all","vat")(c)}`,c=>`${q("dinh")(c)}+${q("bien")(c)}`);tie("Theo kênh − KQKD: chi phí ADS",tk("all","ads"),q("ads"));
+  tie("Theo kênh − KQKD: kết quả kinh doanh",tk("all","kq"),q("kq"));tie("Phí sàn: tổng 3 kênh − sheet TỔNG HỢP (định + biến phí)",c=>PS.x(PB.all.phisan,c),c=>`${q("dinh")(c)}+${q("bien")(c)}`);
+  if(CF){tie("Dòng tiền kinh doanh − KQKD",c=>CF.x(CB_.all.cf,c),q("kq"));tie("Dòng tiền thuần − lợi nhuận ròng",c=>CF.x(CB_.all.net,c),q("lnr"));}
+  r++;band("C. CÔNG THỨC EXCEL SO VỚI APP (số app tính lúc xuất file; chênh dưới 10.000 đ là do làm tròn đồng)");
+  const vsApp=(l,ch,k,ref)=>test("b",l,(c,i)=>`${ref(c)}-(${z(MF.ch[ch][k][i])})`,10000);
+  vsApp("Phí sàn Shopee (gồm thuế): Excel − app","sp","phisan",c=>PS.x(PB.sp.phisan,c));vsApp("Phí sàn TikTok (gồm thuế): Excel − app","tt","phisan",c=>PS.x(PB.tt.phisan,c));
+  vsApp("KQKD Shopee: Excel − app","sp","kq",tk("sp","kq"));vsApp("KQKD TikTok: Excel − app","tt","kq",tk("tt","kq"));vsApp("KQKD Ngoại sàn: Excel − app","ns","kq",tk("ns","kq"));vsApp("KQKD tổng TMĐT: Excel − app","all","kq",q("kq"));
+  if(KH){sh.set(r,1,"Kế hoạch "+PY+": KQKD cả năm Excel − app",lst("",0));put(sh,r,CM(0),`${KH.xa(KR.kq,14)}-${Math.round(sum(RT_.kq))}`,"chk","");put(sh,r,CL,`IF(ABS(${AD(r,CM(0))})>${AD(r,CP)},1,0)`,"int","",null,{h:"center",b:1});put(sh,r,CP,10000,"amt","","const");
+   sh.cf.push({sq:AD(r,CM(0)),rules:[{f:`ABS(${AD(r,CM(0))})>${AD(r,CP)}`,dxf:DX.bad},{f:`ISNUMBER(${AD(r,CM(0))})`,dxf:DX.ok}]});CKS.b.push(r);r++;
+   sh.set(r,1,"Kế hoạch "+PY+": NMV 12 tháng − NMV mục tiêu",lst("",0));put(sh,r,CM(0),`${KH.xa(KR.nmv,14)}-KH_NMV`,"chk","");put(sh,r,CL,`IF(ABS(${AD(r,CM(0))})>${AD(r,CP)},1,0)`,"int","",null,{h:"center",b:1});put(sh,r,CP,1,"amt","","const");
+   sh.cf.push({sq:AD(r,CM(0)),rules:[{f:`ABS(${AD(r,CM(0))})>${AD(r,CP)}`,dxf:DX.bad},{f:`ISNUMBER(${AD(r,CM(0))})`,dxf:DX.ok}]});CKS.b.push(r);r++;
+   sh.set(r,1,"Kế hoạch "+PY+": cơ sở + tác động đòn bẩy − KQKD mục tiêu",lst("",0));put(sh,r,CM(0),KH.xa(KR.levChk,5),"chk","");put(sh,r,CL,`IF(ABS(${AD(r,CM(0))})>${AD(r,CP)},1,0)`,"int","",null,{h:"center",b:1});put(sh,r,CP,10000,"amt","","const");
+   sh.cf.push({sq:AD(r,CM(0)),rules:[{f:`ABS(${AD(r,CM(0))})>${AD(r,CP)}`,dxf:DX.bad},{f:`ISNUMBER(${AD(r,CM(0))})`,dxf:DX.ok}]});CKS.b.push(r);r++;}
+  r++;const sA=CKS.a.map(x=>AD(x,CL)).join(","),sB=CKS.b.map(x=>AD(x,CL)).join(",");
+  sh.set(r,1,"Tổng số ô lệch – số liệu nguồn (phần A)",lst("tot",0));put(sh,r,2,`SUM(${sA})`,"int","tot",null,{h:"center"});B.name("KT_Nguon",sh,AB(r,2));r++;
+  sh.set(r,1,"Tổng số ô lệch – công thức (phần B, C)",lst("tot",0));put(sh,r,2,sB?`SUM(${sB})`:"0","int","tot",null,{h:"center"});B.name("KT_CongThuc",sh,AB(r,2));r++;}
+ /* ===================== TỔNG QUAN ===================== */
+ {const sh=OV,a0=PV.a,b0=PV.b;sh.width(1,46);for(let c=2;c<=9;c++)sh.width(c,19);
+  title(sh,"TỔNG QUAN KINH DOANH TMĐT NĂM "+yr,"Chọn kỳ ở các ô vàng: mọi số trong trang tự tính lại (công thức SUMPRODUCT theo tháng). Kỳ trước = kỳ liền trước cùng số tháng. Đơn vị: đồng.");
+  const mlist='"'+mo.join(",")+'"';
+  sh.set(4,1,"Từ tháng",Y.lab);sh.set(4,2,mo[a0],Y.inTxt);sh.set(4,3,"Đến tháng",Y.lab);sh.set(4,4,mo[b0],Y.inTxt);sh.set(4,5,"Mục tiêu biên KQKD",Y.lab);put(sh,4,6,TARGET,"rate1","","input",{h:"center",b:1});
+  sh.dv.push({type:"list",f1:mlist,sq:"B4 D4",prompt:"Chọn tháng trong danh sách",pt:"Kỳ phân tích"});B.name("TuThang",sh,"$B$4");B.name("DenThang",sh,"$D$4");B.name("MucTieu",sh,"$F$4","Mục tiêu biên KQKD dùng cho các sheet thực tế");
+  sh.set(5,1,"Tháng đầu / cuối / số tháng / tháng đầu kỳ trước",Y.statL);put(sh,5,2,"MATCH(TuThang,ThangNhan,0)","int","",null,{h:"center"});put(sh,5,3,"MATCH(DenThang,ThangNhan,0)","int","",null,{h:"center"});put(sh,5,4,"Ky_B-Ky_A+1","int","",null,{h:"center"});put(sh,5,5,"Ky_A-Ky_Len","int","",null,{h:"center"});
+  B.name("Ky_A",sh,"$B$5");B.name("Ky_B",sh,"$C$5");B.name("Ky_Len",sh,"$D$5");B.name("Ky_PA",sh,"$E$5");
+  sh.set(6,1,"Kỳ đang xem",Y.lab);sh.set(6,2,{f:`IF(Ky_A>Ky_B,"⚠ Từ tháng phải trước hoặc bằng Đến tháng",TuThang&IF(Ky_Len>1,"–"&DenThang,"")&"/"&NamTT&" ("&Ky_Len&" tháng)")`},Y.calcTxt);sh.merge(6,2,6,4);
+  sh.set(6,5,"Kỳ so sánh",Y.lab);sh.set(6,6,{f:`IF(Ky_PA<1,"không có kỳ trước cùng độ dài",INDEX(ThangNhan,Ky_PA)&IF(Ky_Len>1,"–"&INDEX(ThangNhan,Ky_A-1),"")&"/"&NamTT)`},Y.calcTxt);sh.merge(6,6,6,8);
+  const SPd=(x,a,b)=>`SUMPRODUCT((ThangSo>=${a})*(ThangSo<=${b})*${x})`,rngK=k=>KQ.xr(K[k],CM(0),CM(n-1)),rngT=(ch,k)=>TK.xr(TB[ch][k],CM(0),CM(n-1));
+  let r=8;sh.set(r,1,"CHỈ TIÊU CHÍNH",Y.band);for(let c=2;c<=8;c++)sh.set(r,c,null,Y.band);r++;
+  ["Chỉ tiêu",{f:`"Kỳ chọn "&TuThang&IF(Ky_Len>1,"–"&DenThang,"")`},"Kỳ trước","Chênh lệch","% thay đổi\n(tỷ lệ: điểm %)",{f:`"Lũy kế T1–"&DenThang`},"Bình quân\n1 tháng của kỳ",{f:`"Ước cả năm "&NamTT&"\n(lũy kế ÷ tháng × 12)"`}].forEach((t,j)=>sh.set(r,1+j,t,j?Y.h:Y.hl));sh.height(r,34);r++;
+  const OR={};const A_=(k,l,src,kd,cls)=>{OR[k]=r;sh.set(r,1,l,lst(cls||"",0));kd=kd||"amt";
+    put(sh,r,2,SPd(src,"Ky_A","Ky_B"),kd,cls);put(sh,r,3,`IF(Ky_PA<1,"",${SPd(src,"Ky_PA","Ky_A-1")})`,kd,cls);put(sh,r,4,`IF(C${r}="","",B${r}-C${r})`,kd,cls);put(sh,r,5,`IF(OR(C${r}="",C${r}=0),"",B${r}/C${r}-1)`,"pt",cls);
+    put(sh,r,6,SPd(src,1,"Ky_B"),kd,cls);put(sh,r,7,`B${r}/Ky_Len`,kd,cls);put(sh,r,8,`F${r}/Ky_B*12`,kd,cls);r++;};
+  const R_=(k,l,num,den,kd)=>{OR[k]=r;sh.set(r,1,l,lst("",1));kd=kd||"rate";const fx=c=>{const N=AD(OR[num],c),Dd=AD(OR[den],c);return`IF(OR(${Dd}="",${Dd}=0),"",${N}/${Dd})`;};
+    [2,3,6,8].forEach(c=>put(sh,r,c,fx(c),kd,""));put(sh,r,4,`IF(OR(B${r}="",C${r}=""),"",B${r}-C${r})`,kd==="rate"?"pt":kd==="x"?"num2":"dong","");put(sh,r,5,null,"pt","");put(sh,r,7,null,kd,"");r++;};
+  A_("nmv","Doanh số sau hoàn (NMV)",rngK("nmv"),"amt","sec");A_("gmv","Doanh số đặt đơn (GMV)",rngK("gmv"));R_("rnmv","NMV / GMV","nmv","gmv");A_("q","Đơn thành công",rngK("don_tc"),"cnt");R_("aov","Giá trị đơn bình quân (đồng)","nmv","q","dong");
+  A_("gv","Giá vốn",rngK("gv"));R_("rgv","Giá vốn / NMV","gv","nmv");A_("ps","Phí sàn (định + biến, gồm thuế)",`(${rngK("dinh")}+${rngK("bien")})`);R_("rps","Phí sàn / NMV","ps","nmv");
+  A_("lng","LỢI NHUẬN GỘP",rngK("lng"),"amt","sec");R_("rlng","Biên lợi nhuận gộp","lng","nmv");A_("ads","Chi phí ADS",rngK("ads"));R_("rads","ADS / NMV","ads","nmv");R_("roas","ROAS (NMV / ADS)","nmv","ads","x");
+  A_("bhk","CP bán hàng khác",rngK("bhk"));A_("ldg","LÃI ĐÓNG GÓP",rngK("ldg"),"amt","sec");R_("rldg","Lãi đóng góp / NMV","ldg","nmv");
+  A_("opx","Chi phí vận hành (biến động + cố định)",`(${rngK("vhbd")}+${rngK("vhcd")})`);A_("tk","Thu nhập khác − chi phí khác",`(${rngK("tnk")}-${rngK("cpk")})`);
+  A_("kq","KẾT QUẢ KINH DOANH",rngK("kq"),"amt","tot");R_("mg","Biên KQKD (xanh: đạt mục tiêu)","kq","nmv");
+  OR.gap=r;sh.set(r,1,"Vượt (+) / thiếu (−) so mục tiêu biên",lst("",1));[2,3,6,8].forEach(c=>put(sh,r,c,`IF(${AD(OR.kq,c)}="","",${AD(OR.kq,c)}-MucTieu*${AD(OR.nmv,c)})`,"amt",""));put(sh,r,4,`IF(OR(B${r}="",C${r}=""),"",B${r}-C${r})`);put(sh,r,5,null,"pt");put(sh,r,7,`B${r}/Ky_Len`);r++;
+  A_("tax","Thuế TNDN / TNCN",rngK("tndn"));A_("lnr","LỢI NHUẬN RÒNG",rngK("lnr"),"amt","tot");
+  [2,3,6,8].forEach(c=>cfTarget(sh,OR.mg,c,c,"MucTieu"));
+  /* theo kênh */
+  r++;sh.set(r,1,"THEO KÊNH – KỲ CHỌN",Y.band);for(let c=2;c<=9;c++)sh.set(r,c,null,Y.band);r++;
+  ["Kênh","Doanh số (NMV)","Tỷ trọng doanh số","Đơn thành công","Giá trị đơn BQ (đồng)","Phí sàn + thuế / NMV","ADS / NMV","KQKD","Biên KQKD"].forEach((t,j)=>sh.set(r,1+j,t,j?Y.h:Y.hl));sh.height(r,32);r++;const ch0=r;
+  ["sp","tt","ns","all"].forEach(ch=>{const cls=ch==="all"?"tot":"",T=k=>SPd(rngT(ch,k),"Ky_A","Ky_B");sh.set(r,1,ch==="all"?"Tổng TMĐT":CHN[ch],lst(cls,0));put(sh,r,2,T("nmv"),"amt",cls);put(sh,r,3,DIV(`B${r}`,`$B$${ch0+3}`),"rate1",cls);put(sh,r,4,T("orders"),"cnt",cls);put(sh,r,5,DIV(`B${r}`,`D${r}`),"dong",cls);
+   put(sh,r,6,DIV(`${T("net")}+${T("vat")}`,`B${r}`),"rate1",cls);put(sh,r,7,DIV(T("ads"),`B${r}`),"rate1",cls);put(sh,r,8,T("kq"),"amt",cls);put(sh,r,9,DIV(`H${r}`,`B${r}`),"rate1",cls);r++;});
+  cfTarget(sh,ch0,9,9,"MucTieu");for(let j=1;j<4;j++)cfTarget(sh,ch0+j,9,9,"MucTieu");
+  /* biểu đồ */
+  r++;const chTop=r;sh.ch.push({at:[chTop,1,chTop+20,9],title:"Doanh số theo kênh "+mo[0]+"–"+mo[n-1]+"/"+yr+" và biên KQKD",cat:{sh:KQ,r:4,c1:CM(0),c2:CM(n-1)},stacked:1,yFmt:"#,##0",y2Fmt:"0.0%",
+   bars:["sp","tt","ns"].map(ch=>({name:CHN[ch],sh:TK,r:TB[ch].nmv,color:ch==="sp"?"EE4D2D":ch==="tt"?"A5A5A5":"5B9BD5"})),lines:[{name:"Biên KQKD",sh:KQ,r:K.mg,color:"1F3864",labels:1}]});
+  r=chTop+21;
+  /* nhận xét */
+  try{const ins=insights().map(x=>x.replace(/<[^>]+>/g,"").replace(/&nbsp;/g," ").replace(/&amp;/g,"&"));sh.set(r,1,"NHẬN XÉT – kỳ "+PV.lab+"/"+yr+" (văn bản cố định lúc xuất file; đổi kỳ ở trên không làm đổi nhận xét)",Y.band);for(let c=2;c<=9;c++)sh.set(r,c,null,Y.band);r++;
+   ins.forEach(t=>{sh.set(r,1,"• "+t,Y.note);sh.merge(r,1,r,9);sh.height(r,Math.max(28,Math.ceil(t.length/150)*14+6));r++;});}catch(e){}
+  sh.o.freeze=[8,1];}
+ /* ===================== MỤC LỤC ===================== */
+ {const sh=COV;sh.width(1,6);sh.width(2,30);sh.width(3,78);sh.width(4,14);
+  sh.set(1,2,"BÁO CÁO KINH DOANH TMĐT NĂM "+yr+(hasPlan?" VÀ KẾ HOẠCH NĂM "+PY:""),Y.t);sh.height(1,28);sh.set(2,2,"Kênh Shopee, TikTok và ngoại sàn (CSKH) · file Excel có công thức, tự kiểm tra",Y.st);
+  let r=4;const info=(l,v,st2)=>{sh.set(r,2,l,Y.txtB);sh.set(r,3,v,st2||Y.txt);r++;};
+  info("Đơn vị tính","Đồng (ghi đầy đủ, không viết tắt triệu/tỷ); số đơn: đơn");info("Số liệu thực tế",mo[0]+"–"+mo[n-1]+"/"+yr+" · trạng thái tháng cuối: "+((D.status||[])[n-1]||"–"));info("Nguồn số liệu",D.source||"–");
+  if(hasPlan)info("Kế hoạch","Năm "+PY+" – phương án mục tiêu (cơ sở + cam kết đòn bẩy của các phòng)");info("Thời điểm xuất file",new Date().toLocaleString("vi-VN")+(viewer?" · bản Ban lãnh đạo":" · bản quản trị"));info("Số liệu cập nhật lần cuối",D.savedAt||"–");
+  if(CK){sh.set(r,2,"Kiểm tra công thức",Y.txtB);sh.set(r,3,{f:`IF(KT_CongThuc=0,"✓ Khớp toàn bộ giữa các sheet và với app","✗ "&KT_CongThuc&" ô lệch – xem sheet Kiểm tra")`},Y.stTxt);sh.cf.push({sq:AD(r,3),rules:[{f:"KT_CongThuc=0",dxf:DX.ok},{f:"KT_CongThuc>0",dxf:DX.bad}]});r++;
+   sh.set(r,2,"Kiểm tra số liệu nguồn",Y.txtB);sh.set(r,3,{f:`IF(KT_Nguon=0,"✓ Không phát hiện chênh lệch",KT_Nguon&" ô cần kế toán xem lại (lỗi ở file BCKD) – xem sheet Kiểm tra, phần A")`},Y.stTxt);sh.cf.push({sq:AD(r,3),rules:[{f:"KT_Nguon=0",dxf:DX.ok},{f:"KT_Nguon>0",dxf:DX.warn}]});r++;}
+  r++;sh.set(r,2,"MỤC LỤC",Y.h2);sh.set(r,3,null,Y.h2);r++;["STT","Sheet (bấm để mở)","Nội dung"].forEach((t,j)=>sh.set(r,1+j,t,Y.h));r++;
+  const DESC={"Tổng quan":"Chọn kỳ bất kỳ (từ tháng – đến tháng): chỉ tiêu chính, so kỳ trước, lũy kế, ước cả năm, theo kênh, biểu đồ, nhận xét","KQKD":"Báo cáo kết quả kinh doanh theo tháng: doanh số, giá vốn, phí sàn, chi phí bán hàng, vận hành, KQKD, lợi nhuận ròng",
+   "Theo kênh":"KQKD từng kênh Shopee, TikTok, ngoại sàn: phân bổ giá vốn, chi phí chung theo doanh số, lương kho theo số đơn","Phí sàn":"Từng khoản phí sàn theo kênh, tỷ lệ so biểu phí, đối chiếu tổng hợp với chi tiết sàn",
+   "Dòng tiền":"Dòng tiền quản trị theo kênh, tiền còn nằm ở sàn chờ quyết toán","Kho vận":"Lượng đơn, chi phí kho / đơn, xu hướng chi phí cố định – biến đổi","Biến số":"Phân tích chênh lệch KQKD so tháng trước, mô phỏng, ma trận ADS × số đơn, độ nhạy",
+   ["KH "+PY]:"Kế hoạch "+PY+": KQKD 12 tháng, chỉ tiêu từng phòng, kho, quỹ lương, dòng tiền, đòn bẩy (toàn bộ là công thức)","KH giả định":"Ô nhập giả định kế hoạch: sửa ở đây thì kế hoạch tự tính lại","KH-TH tháng":"Kế hoạch – thực hiện theo tháng: chọn tháng, % hoàn thành, lũy kế, phòng phụ trách",
+   "Theo shop":"Phí sàn và tiền chờ quyết toán theo từng shop","Kiểm tra":"Soát số liệu nguồn và soát công thức (khớp giữa các sheet, khớp với app)","Số liệu nguồn":"Số liệu gốc từ file BCKD: mọi sheet lấy số từ đây"};
+  B.sheets.forEach((s2,i)=>{if(s2===sh)return;sh.set(r,1,i,Y.txtC);sh.set(r,2,s2.name,Y.lnk);sh.hl.push({ref:AD(r,2),loc:XL.qn(s2.name)+"!A1",tip:"Mở sheet "+s2.name});sh.set(r,3,DESC[s2.name]||"",Y.txt);r++;});
+  r++;sh.set(r,2,"CHÚ THÍCH",Y.h2);sh.set(r,3,null,Y.h2);r++;
+  [["1.234.567",nst("amt","","const"),"Chữ xanh dương: số liệu gốc hoặc số app tính lúc xuất (nhập tay)"],["1.234.567",nst("amt","","input"),"Ô vàng chữ xanh: giả định / lựa chọn, được sửa"],["1.234.567",nst("amt","","link"),"Chữ xanh lá: lấy từ sheet khác (liên kết)"],["1.234.567",nst("amt","","calc"),"Chữ đen: công thức tính trong sheet"],
+   ["1.234.567",nst("amt","sec"),"Dòng nền xanh nhạt: dòng tổng phụ"],["1.234.567",nst("amt","tot"),"Dòng nền xanh, gạch đôi: dòng tổng"],["✓",st.xf({bd:"all",fill:C.ok,color:C.okF,h:"right"}),"Kiểm tra khớp"],["-1.234.567",st.xf({bd:"all",fill:C.bad,color:C.badF,h:"right"}),"Kiểm tra lệch: cần xem lại"]]
+   .forEach(([v,s2,t])=>{sh.set(r,2,v,s2);sh.set(r,3,t,Y.txt);r++;});
+  r++;sh.set(r,2,"LƯU Ý",Y.h2);sh.set(r,3,null,Y.h2);r++;
+  ["File Excel KHÔNG được mã hóa như bản HTML: chỉ lưu trên máy tin cậy, không gửi qua nhóm chat công khai hoặc email ngoài công ty.","Mở bằng Excel trên máy tính để công thức tự tính lại; xem trên điện thoại vẫn thấy số đã tính sẵn lúc xuất.",
+   "Đổi kỳ phân tích ở sheet Tổng quan (ô vàng Từ tháng – Đến tháng). Sửa giả định kế hoạch ở sheet KH giả định.","Phân bổ theo kênh: giá vốn, chi phí bán hàng khác, vận hành, thu nhập và chi phí khác theo tỷ trọng doanh số; lương kho vận đơn theo tỷ trọng số đơn thành công."]
+   .forEach(t=>{sh.set(r,2,"• "+t,Y.note);sh.merge(r,2,r,3);sh.height(r,30);r++;});}
+ return B;}
+
+/* xuất cả sổ */
+async function exportAll(){const b=$("#bXls"),t0=b.textContent;b.disabled=true;b.textContent="Đang tạo Excel…";
+ try{await new Promise(r=>setTimeout(r,40));const B=xlBook();const blob=await XL.save(B,{title:"Báo cáo TMĐT "+D.year,head:"Báo cáo TMĐT "+D.year+(D.plan&&D.plan.year?" – Kế hoạch "+D.plan.year:""),foot:"Đơn vị: đồng · xuất "+new Date().toLocaleString("vi-VN")});
+  dl(blob,"BaoCao_TMDT_"+D.year+(D.plan&&D.plan.year?"_KH"+D.plan.year:"")+"_"+today()+".xlsx");}
+ catch(e){console.error(e);alert("Không tạo được file Excel: "+e.message);}finally{b.disabled=false;b.textContent=t0;}}
+/* xuất một bảng đang xem (giữ số, định dạng; không có công thức) */
+async function exportTable(tb){const B=XL.Book(),st=B.st,t=(tb.dataset.title||"Bảng").replace(/[\[\]\:\*\?\/\\]/g," ").slice(0,31).trim()||"Bảng",sh=B.sheet(t,{freeze:[4,2]});
+ const NF={amt:'#,##0;[Red]-#,##0;"-"',vnd:'#,##0;[Red]-#,##0;"-"',cnt:'#,##0;[Red]-#,##0;"-"',dong:'#,##0;[Red]-#,##0;"-"',rate:'0.00%;[Red]-0.00%;"-"',x:'0.00"x"',num:'#,##0.0'};
+ const H=st.xf({b:1,color:"FFFFFF",fill:"1F3864",h:"center",v:"center",wrap:1,bd:"hdr"}),T=st.xf({b:1,sz:14,color:"1F3864"}),N=st.xf({i:1,sz:9,color:"595959"});
+ sh.set(1,1,tb.dataset.title||t,T);sh.set(2,1,"Đơn vị: đồng · xuất từ Báo cáo TMĐT "+new Date().toLocaleString("vi-VN"),N);let r=4,mc=1;
+ tb.querySelectorAll("tr").forEach(tr=>{let c=1;const cls=tr.className||"",isH=tr.parentElement.tagName==="THEAD",b=/sec|tot|hd/.test(cls),fill=/tot/.test(cls)?"D9E2F1":/sec|hd/.test(cls)?"EAF0F8":null;
+  tr.querySelectorAll("th,td").forEach(td=>{const span=+(td.getAttribute("colspan")||1),txt=td.textContent.replace(/\s+/g," ").trim(),v=td.dataset.v,inp=td.querySelector("input");
+   if(isH||td.tagName==="TH")sh.set(r,c,txt,H);else if(v!==undefined&&v!==""&&isFinite(+v)){const k=td.dataset.t||"amt";sh.set(r,c,+v,st.xf({nf:NF[k]||NF.amt,bd:"all",b:b?1:0,fill,h:"right"}));}
+   else sh.set(r,c,inp?inp.value:txt,st.xf({bd:"all",b:b?1:0,fill,wrap:c===1?0:1}));if(span>1)sh.merge(r,c,r,c+span-1);c+=span;});mc=Math.max(mc,c-1);if(isH)sh.height(r,30);r++;});
+ sh.width(1,50);for(let c=2;c<=mc;c++)sh.width(c,17);
+ const blob=await XL.save(B,{title:t,head:t,foot:"Đơn vị: đồng"});dl(blob,t.replace(/[^\wÀ-ỹ]+/g,"_").slice(0,60)+".xlsx");}
 function savePNG(btn){const box=btn.closest(".cbox"),svg=box&&box.querySelector("svg");if(!svg)return;const cs=getComputedStyle(document.documentElement),gv=v=>cs.getPropertyValue(v).trim();
  let s=new XMLSerializer().serializeToString(svg);s=s.replace(/var\((--[\w-]+)\)/g,(m,v)=>gv(v)||"#000");
  const vb=svg.viewBox.baseVal,st=`<style>.ax{fill:${gv("--mut")};font:11px Segoe UI,Arial,sans-serif}.vl{fill:${gv("--ink")};font:600 11px Segoe UI,Arial,sans-serif}.gl{stroke:${gv("--line")}}.zero{stroke:${gv("--mut")}}.halo{paint-order:stroke;stroke:${gv("--card")};stroke-width:3px}</style>`;
